@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+#include "differentiator.h"
+#include "logger.h"
+#include "io_utils.h"
+#include "base.h"
+
+int main() {
+    create_folder_if_not_exists("logs/");
+    init_logger("logs/");
+
+    fprintf(logger_get_file(), "<H2>MEOW!</H2>");
+
+    varlist::VarList var_list = {};
+    varlist::init(&var_list);
+
+    EQ_TREE_T *tree = load_tree_from_file("test_expression.txt", &var_list);
+
+    full_dump(tree, "Dump from line %d", 18);
+
+    simple_dump(tree, "Simple dump from line 20");
+
+    char *latex = latex_dump(tree);
+    printf("LaTeX: %s\n", latex);
+    FREE(latex);
+
+    destruct(tree);
+
+    varlist::destruct(&var_list);
+
+    destruct_logger();
+
+    return 0;
+}
