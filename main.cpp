@@ -19,7 +19,7 @@ int main() {
     varlist::VarList var_list = {};
     varlist::init(&var_list);
 
-    EQ_TREE_T *tree = load_tree_from_file("test.tmp", &var_list);
+    EQ_TREE_T *tree = load_tree_from_file("test_expression.txt", &var_list);
 
     full_dump(tree, "Dump from line %d", 18);
 
