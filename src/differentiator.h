@@ -45,6 +45,7 @@ typedef struct EQ_TREE_T {
     const char       *name;
     NODE_T           *root;
     varlist::VarList *vars;
+    bool              owns_vars;
 } EQ_TREE_T;
 
 typedef enum {
@@ -87,6 +88,8 @@ bool verifier(EQ_TREE_T *eqtree);
 void print(EQ_TREE_T *eqtree);
 
 bool is_leaf(const NODE_T *node);
+
+EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx);
 
 // ---- Dump ----
 

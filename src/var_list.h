@@ -75,6 +75,16 @@ const mystr::mystr_t *get(const VarList *list, size_t index);
  */
 size_t size(const VarList *list);
 
+/**
+ * @brief Ищет индекс имени по строке mystr.
+ */
+size_t find_index(const VarList *list, const mystr::mystr_t *name);
+
+/**
+ * @brief Создает копию списка переменных.
+ */
+VarList *clone(const VarList *list);
+
 } // namespace varlist
 
 #endif //VAR_LIST_H

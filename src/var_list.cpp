@@ -122,5 +122,25 @@ size_t size(const VarList *list) {
     return list ? list->size : 0;
 }
 
+size_t find_index(const VarList *list, const mystr_t *name) {
+    if (!list || !name) return NPOS;
+    return find_internal(list, name);
+}
+
+VarList *clone(const VarList *list) {
+    if (!list) return nullptr;
+    VarList *copy = TYPED_CALLOC(1, VarList);
+    if (!copy) return nullptr;
+    init(copy);
+    for (size_t i = 0; i < list->size; ++i) {
+        if (add(copy, &list->data[i]) == NPOS) {
+            destruct(copy);
+            FREE(copy);
+            return nullptr;
+        }
+    }
+    return copy;
+}
+
 } // namespace varlist
 

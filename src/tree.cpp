@@ -53,7 +53,11 @@ void destruct(EQ_TREE_T *eqtree) {
     if (!eqtree)
         return;
     destruct(eqtree->root);
-    varlist::destruct(eqtree->vars);
+    if (eqtree->vars) {
+        varlist::destruct(eqtree->vars);
+        if (eqtree->owns_vars)
+            FREE(eqtree->vars);
+    }
     FREE(eqtree);
 }
 
