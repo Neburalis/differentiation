@@ -342,11 +342,8 @@ function const char *latex_func_name(OPERATOR op) {
 function size_t latex_size(EQ_TREE_T *tree, NODE_T *node) {
     if (!tree || !node) return 0;
     switch (node->type) {
-        case NUM_T: {
-            char buf[64] = "";
-            int written = snprintf(buf, sizeof(buf), "%.6g", node->value.num);
-            return written > 0 ? (size_t) written : 0;
-        }
+        case NUM_T:
+            return 16;
         case VAR_T: {
             const mystr::mystr_t *name = tree->vars ? varlist::get(tree->vars, node->value.var) : nullptr;
             return (name && name->str) ? strlen(name->str) : 0;
