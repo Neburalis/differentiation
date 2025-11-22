@@ -70,13 +70,20 @@ const char *operator_symbol(OPERATOR op);
 
 void format_node_value(const EQ_TREE_T *eqtree, const NODE_T *node, char *buf, size_t size);
 
-void calc_in_point(const EQ_TREE_T *eqtree);
+typedef struct {
+    const EQ_TREE_T *tree;
+    double          *point;
+    size_t           vars_count;
+    double           result;
+} CALC_RESULT_T;
 
-void save_tree_to_file(FILE *file, NODE_T *node);
+CALC_RESULT_T calc_in_point(const EQ_TREE_T *eqtree);
 
-bool verifier(NODE_T node);
+void save_tree_to_file(FILE *file, EQ_TREE_T *eqtree);
 
-void print(NODE_T node);
+bool verifier(EQ_TREE_T *eqtree);
+
+void print(EQ_TREE_T *eqtree);
 
 bool is_leaf(const NODE_T *node);
 

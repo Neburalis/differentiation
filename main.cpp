@@ -30,7 +30,8 @@ int main() {
     printf("LaTeX: %s\n", latex);
     FREE(latex);
 
-    calc_in_point(tree);
+    CALC_RESULT_T calc = calc_in_point(tree);
+    FREE(calc.point);
 
     destruct(tree);
 
