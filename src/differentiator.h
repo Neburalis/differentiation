@@ -75,9 +75,10 @@ typedef struct {
     double          *point;
     size_t           vars_count;
     double           result;
-} CALC_RESULT_T;
+} EQ_POINT_T;
 
-CALC_RESULT_T calc_in_point(const EQ_TREE_T *eqtree);
+EQ_POINT_T  read_point_data(const EQ_TREE_T *eqtree);
+EQ_POINT_T *calc_in_point  (EQ_POINT_T *point);
 
 void save_tree_to_file(FILE *file, EQ_TREE_T *eqtree);
 

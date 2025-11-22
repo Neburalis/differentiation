@@ -30,8 +30,10 @@ int main() {
     printf("LaTeX: %s\n", latex);
     FREE(latex);
 
-    CALC_RESULT_T calc = calc_in_point(tree);
-    FREE(calc.point);
+    EQ_POINT_T point = read_point_data(tree);
+    calc_in_point(&point);
+    printf("Result: %.10g\n", point.result);
+    FREE(point.point);
 
     destruct(tree);
 

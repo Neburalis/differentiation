@@ -164,25 +164,27 @@ function double eval_node(const NODE_T *node, const double *vals, size_t vals_nu
     }
 }
 
-CALC_RESULT_T calc_in_point(const EQ_TREE_T *eqtree) {
-    CALC_RESULT_T res = {eqtree, nullptr, 0, 0};
+EQ_POINT_T read_point_data(const EQ_TREE_T *eqtree) {
+    EQ_POINT_T res = {eqtree, nullptr, 0, 0};
     if (!eqtree) return res;
-    NODE_T           *root = eqtree->root;
     varlist::VarList *vars = eqtree->vars;
-    if (!root || !vars) return res;
-    res.vars = varlist::size(vars);
-    if (res.vars) {
-        res.point = TYPED_CALLOC(res.vars, double);
-        VERIFY(res.point != nullptr, ERROR_MSG("calc_in_point: failed to allocate values"); return res;);
-    }
-    for (size_t i = 0; i < res.vars; ++i) {
+    if (!vars) return res;
+    res.vars_count = varlist::size(vars);
+    if (!res.vars_count) return res;
+    res.point = TYPED_CALLOC(res.vars_count, double);
+    VERIFY(res.point != nullptr, ERROR_MSG("read_point_data: failed to allocate values"); return res;);
+    for (size_t i = 0; i < res.vars_count; ++i) {
         const mystr::mystr_t *name = varlist::get(vars, i);
         const char *label = (name && name->str) ? name->str : "var";
         printf("Enter %s: ", label);
         fflush(stdout);
         scanf("%lf", &res.point[i]);
     }
-    res.result = eval_node(root, res.point, res.vars);
-    printf("Result: %.10g\n", res.result);
     return res;
+}
+
+EQ_POINT_T *calc_in_point(EQ_POINT_T *point) {
+    if (!point->tree || !point->tree->root) return point;
+    point->result = eval_node(point->tree->root, point->point, point->vars_count);
+    return point;
 }
