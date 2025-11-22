@@ -13,6 +13,7 @@ typedef struct Logger {
 } Logger;
 
 int init_logger(const char *log_dirname);
+int init_logger(const char *log_dirname, const char *first_head_line, ...);
 void destruct_logger(void);
 
 FILE *logger_get_file(void);

@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <string.h>
 
 #include "base.h"
@@ -9,7 +10,7 @@ function Logger *get_global_logger() {
     return &GLOBAL_LOGGER;
 }
 
-int init_logger(const char *log_dirname) {
+int init_logger(const char *log_dirname, const char *html_head_fmt, ...) {
     Logger *logger = get_global_logger();
 
     if (log_dirname == nullptr || log_dirname[0] == '\0') return -1;
@@ -45,12 +46,25 @@ int init_logger(const char *log_dirname) {
         return -1;
     }
 
-    fprintf(logger->file,
-            "<html>\n<head><meta charset=\"utf-8\"><title>Logger</title></head>\n<body>\n<pre>\n");
+    FILE *file = logger->file;
+    fprintf(file, "<html>\n<head><meta charset=\"utf-8\"><title>Logger</title>");
+
+    if (html_head_fmt != nullptr) {
+        va_list args;
+        va_start(args, html_head_fmt);
+        vfprintf(file, html_head_fmt, args);
+        va_end(args);
+    }
+
+    fprintf(file, "\n</head>\n<body>\n<pre>\n");
     fflush(logger->file);
 
     logger->dir_inited = true;
     return 0;
+}
+
+int init_logger(const char *log_dirname) {
+    return init_logger(log_dirname, nullptr);
 }
 
 void destruct_logger(void) {

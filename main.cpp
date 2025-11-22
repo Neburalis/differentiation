@@ -7,7 +7,12 @@
 
 int main() {
     create_folder_if_not_exists("logs/");
-    init_logger("logs/");
+    init_logger(
+        "logs/",
+        "\n<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']],displayMath:[['$$','$$'],['\\\\[','\\\\]']]},"
+        "options:{skipHtmlTags:['script','noscript','style','textarea','annotation','annotation-xml']}};</script>"
+        "\n<script src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\" async></script>"
+        "\n<style>pre{white-space:pre-wrap;font-family:monospace}</style>");
 
     fprintf(logger_get_file(), "<H2>MEOW!</H2>");
 
@@ -21,6 +26,7 @@ int main() {
     simple_dump(tree, "Simple dump from line 20");
 
     char *latex = latex_dump(tree);
+    fprintf(logger_get_file(), "\n$$%s$$\n", latex);
     printf("LaTeX: %s\n", latex);
     FREE(latex);
 
