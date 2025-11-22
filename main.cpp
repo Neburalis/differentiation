@@ -24,6 +24,8 @@ int main() {
     printf("LaTeX: %s\n", latex);
     FREE(latex);
 
+    calc_in_point(tree);
+
     destruct(tree);
 
     varlist::destruct(&var_list);

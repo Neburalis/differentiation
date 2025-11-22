@@ -70,7 +70,7 @@ const char *operator_symbol(OPERATOR op);
 
 void format_node_value(const EQ_TREE_T *eqtree, const NODE_T *node, char *buf, size_t size);
 
-void calc_in_point(const NODE_T *node, varlist::VarList *vars);
+void calc_in_point(const EQ_TREE_T *eqtree);
 
 void save_tree_to_file(FILE *file, NODE_T *node);
 

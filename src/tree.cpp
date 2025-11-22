@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "differentiator.h"
 #include "enhanced_string.h"
@@ -123,4 +124,65 @@ bool operator_from_token(const char *token, OPERATOR *op) {
 
 bool is_leaf(const NODE_T *node) {
     return node && node->left && node->right;
+}
+
+function double eval_node(const NODE_T *node, const double *vals, size_t vals_num) {
+    if (!node) return 0;
+    switch (node->type) {
+        case NUM_T: return node->value.num;
+        case VAR_T:
+            POSASSERT(vals != nullptr);
+            POSASSERT(node->value.var < vals_num);
+            return vals[node->value.var];
+        case OP_T: {
+            double l = node->left ? eval_node(node->left, vals, vals_num) : 0;
+            double r = node->right ? eval_node(node->right, vals, vals_num) : 0;
+            switch (node->value.opr) {
+                case ADD:  return l + r;
+                case SUB:  return l - r;
+                case MUL:  return l * r;
+                case DIV:  return l / r;
+                case POW:  return pow(l, r);
+                case LOG:  return log(l) / log(r);
+                case LN:   return log(l);
+                case SIN:  return sin(l);
+                case COS:  return cos(l);
+                case TAN:  return tan(l);
+                case CTG:  return 1.0 / tan(l);
+                case ASIN: return asin(l);
+                case ACOS: return acos(l);
+                case ATAN: return atan(l);
+                case ACTG: return atan(1.0 / l);
+                case SQRT: return sqrt(l);
+                case SINH: return sinh(l);
+                case COSH: return cosh(l);
+                case TANH: return tanh(l);
+                case CTH:  return 1.0 / tanh(l);
+                default:   ERROR_MSG("eval_node: unknown operator: %d", node->value.opr); return 0;
+            }
+        }
+    }
+}
+
+void calc_in_point(const EQ_TREE_T *eqtree) {
+    if (!eqtree) return;
+    NODE_T           *root = eqtree->root;
+    varlist::VarList *vars = eqtree->vars;
+    if (!root || !vars) return;
+    size_t count = varlist::size(vars);
+    double *values = nullptr;
+    if (count) {
+        values = TYPED_CALLOC(count, double);
+        VERIFY(values != nullptr, ERROR_MSG("calc_in_point: failed to allocate values"); return;);
+    }
+    for (size_t i = 0; i < count; ++i) {
+        const mystr::mystr_t *name = varlist::get(vars, i);
+        const char *label = (name && name->str) ? name->str : "var";
+        printf("Enter %s: ", label);
+        fflush(stdout);
+        scanf("%lf", &values[i]);
+    }
+    double result = eval_node(root, values, count);
+    printf("Result: %.10g\n", result);
+    FREE(values);
 }
