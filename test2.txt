@@ -1,0 +1,37 @@
+(
+    -
+    (
+        ^
+        (
+            2
+            nil
+            nil
+        )
+        (
+            -
+            (
+                log
+                (
+                    2
+                    nil
+                    nil
+                )
+                (
+                    x
+                    nil
+                    nil
+                )
+            )
+            (
+                1
+                nil
+                nil
+            )
+        )
+    )
+    (
+        y
+        nil
+        nil
+    )
+)

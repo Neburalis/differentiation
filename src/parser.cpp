@@ -40,12 +40,16 @@ typedef struct {
     varlist::VarList   *vars;
 } Parser;
 
+function void debug_parse_print(const Parser *p, const char *reason);
+
 function void skip_spaces(Parser *p) {
+    debug_parse_print(p, "skip_spaces");
     while (p->pos < p->len && isspace((unsigned char)p->buf[p->pos]))
         ++p->pos;
 }
 
 function bool consume_nil(Parser *p) {
+    debug_parse_print(p, "consume_nil");
     if (p->pos + 3 > p->len)
         return false;
     if (strncmp(p->buf + p->pos, "nil", 3) != 0)
@@ -61,6 +65,7 @@ function bool consume_nil(Parser *p) {
 }
 
 function char *next_token(Parser *p) {
+    debug_parse_print(p, "next_token");
     skip_spaces(p);
     size_t start = p->pos;
     while (p->pos < p->len) {
@@ -90,6 +95,7 @@ function bool store_number(NODE_T *node, const char *token) {
 }
 
 function bool store_variable(Parser *p, NODE_T *node, char *token) {
+    debug_parse_print(p, "store_variable");
     if (!p->vars)
         return false;
     mystr::mystr_t name = mystr::construct(token);
@@ -97,9 +103,21 @@ function bool store_variable(Parser *p, NODE_T *node, char *token) {
     return idx != varlist::NPOS ? (node->value.var = idx, true) : false;
 }
 
+function void debug_parse_print(const Parser *p, const char *reason) {
+    size_t pos = p->pos < p->len ? p->pos : p->len;
+    printf("file loading dump %s\n", reason);
+    printf(BRIGHT_BLACK("%.*s"), (int)pos, p->buf);
+    if (pos < p->len) {
+        printf(GREEN("%c"), p->buf[pos]);
+        if (pos + 1 < p->len) printf("%s", p->buf + pos + 1);
+    }
+    putchar('\n');
+}
+
 function bool expect_char(Parser *p, char ch, const char *err_fmt) {
+    debug_parse_print(p, "expect_char");
     if (p->pos >= p->len || p->buf[p->pos] != ch) {
-        PARSE_FAIL(p, "%s", err_fmt, p->pos);
+        PARSE_FAIL(p, err_fmt, ch, p->buf[p->pos], p->pos);
         return false;
     }
     ++p->pos;
@@ -107,6 +125,7 @@ function bool expect_char(Parser *p, char ch, const char *err_fmt) {
 }
 
 function char *require_token(Parser *p) {
+    debug_parse_print(p, "require_token");
     char *token = next_token(p);
     if (token)
         return token;
@@ -130,6 +149,7 @@ function bool init_node_payload(Parser *p, NODE_T *node, NODE_TYPE type, char *t
 }
 
 function NODE_T *create_node(Parser *p) {
+    debug_parse_print(p, "create_node");
     char *token = require_token(p);
     if (!token)
         return nullptr;
@@ -156,6 +176,7 @@ function NODE_T *create_node(Parser *p) {
 }
 
 function NODE_T *parse_node(Parser *p) {
+    debug_parse_print(p, "parse_node");
     skip_spaces(p);
     if (p->pos >= p->len) {
         PARSE_FAIL(p, "Unexpected end of input while parsing node\n");
@@ -163,7 +184,7 @@ function NODE_T *parse_node(Parser *p) {
     }
     if (consume_nil(p))
         return nullptr;
-    if (!expect_char(p, '(', "Expected '(' at position %zu\n"))
+    if (!expect_char(p, '(', "Expected '%c', actual '%c' at position %zu\n"))
         return nullptr;
     NODE_T *node = create_node(p);
     if (!node)
@@ -171,7 +192,7 @@ function NODE_T *parse_node(Parser *p) {
     PARSE_CHILD(p, node, left);
     PARSE_CHILD(p, node, right);
     skip_spaces(p);
-    if (!expect_char(p, ')', "Expected ')' at position %zu\n")) {
+    if (!expect_char(p, ')', "Expected '%c', actual '%c' at position %zu\n")) {
         destruct(node);
         return nullptr;
     }

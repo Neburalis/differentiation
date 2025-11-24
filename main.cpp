@@ -6,6 +6,8 @@
 #include "base.h"
 
 int main() {
+    TERMINAL_ENTER_ALT_SCREEN();
+    TERMINAL_CLEAR_SCREEN();
     create_folder_if_not_exists("logs/");
     init_logger(
         "logs/",
@@ -19,7 +21,8 @@ int main() {
     varlist::VarList var_list = {};
     varlist::init(&var_list);
 
-    EQ_TREE_T *tree = load_tree_from_file("test_expression.txt", &var_list);
+    EQ_TREE_T *tree = load_tree_from_file("test2.txt", &var_list);
+    TERMINAL_CLEAR_SCREEN();
 
     full_dump(tree, "Dump from line %d", 18);
 
@@ -43,6 +46,8 @@ int main() {
     printf("first_derivative LaTeX: %s\n", latex);
     FREE(latex);
 
+    point.tree = first_derivative;
+
     calc_in_point(&point);
     printf("first_derivative Result in point: %.10g\n", point.result);
 
@@ -52,5 +57,8 @@ int main() {
     varlist::destruct(&var_list);
     destruct_logger();
 
+    getchar();
+    getchar();
+    TERMINAL_EXIT_ALT_SCREEN();
     return 0;
 }
