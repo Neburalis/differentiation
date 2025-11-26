@@ -15,6 +15,10 @@ function NODE_T *copy_subtree(const NODE_T *node) {
         destruct(left);
         destruct(right);
     }
+    if (copy) {
+        if (copy->left ) copy->left ->parent = copy;
+        if (copy->right) copy->right->parent = copy;
+    }
     return copy;
 }
 
@@ -30,6 +34,10 @@ function NODE_T *make_binary(OPERATOR op, NODE_T *left, NODE_T *right) {
         destruct(left);
         destruct(right);
     }
+    if (node) {
+        if (node->left ) node->left ->parent = node;
+        if (node->right) node->right->parent = node;
+    }
     return node;
 }
 
@@ -37,6 +45,7 @@ function NODE_T *make_unary(OPERATOR op, NODE_T *arg) {
     NODE_VALUE_T val = {.opr = op};
     NODE_T *node = new_node(OP_T, val, arg, nullptr);
     if (!node) destruct(arg);
+    if (node && node->left) node->left->parent = node;
     return node;
 }
 
@@ -133,6 +142,7 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
     if (!src || !src->root) return nullptr;
     NODE_T *root = differentiate_node(src->root, diff_var_idx);
     if (!root) return nullptr;
+    root->parent = nullptr;
     varlist::VarList *vars_copy = src->vars ? varlist::clone(src->vars) : nullptr;
     if (src->vars && !vars_copy) {
         destruct(root);
