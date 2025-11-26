@@ -22,6 +22,7 @@ int main() {
     varlist::init(&var_list);
 
     EQ_TREE_T *tree = load_tree_from_file("test2.txt", &var_list);
+    simplify_tree(tree);
     TERMINAL_CLEAR_SCREEN();
 
     full_dump(tree, "Dump from line %d", 18);
@@ -39,11 +40,19 @@ int main() {
 
     mystr::mystr_t x_str = mystr::construct("x");
     EQ_TREE_T *first_derivative = differentiate(tree, varlist::find_index(tree->vars, &x_str));
-    full_dump(first_derivative, "First derivative from line %d", 38);
-    simple_dump(first_derivative, "Simple first derivative from line %d", 39);
+    full_dump(first_derivative, "First derivative from line %d", __LINE__);
+    simple_dump(first_derivative, "Simple first derivative from line %d", __LINE__);
     latex = latex_dump(first_derivative);
     fprintf(logger_get_file(), "\n$$%s$$\n", latex);
     printf("first_derivative LaTeX: %s\n", latex);
+    FREE(latex);
+
+    simplify_tree(first_derivative);
+    full_dump(first_derivative, "Simplified first derivative from line %d", __LINE__);
+    simple_dump(first_derivative, "Simplified simple first derivative from line %d", __LINE__);
+    latex = latex_dump(first_derivative);
+    fprintf(logger_get_file(), "\n$$%s$$\n", latex);
+    printf("Simplified first_derivative LaTeX: %s\n", latex);
     FREE(latex);
 
     point.tree = first_derivative;

@@ -89,6 +89,8 @@ void print(EQ_TREE_T *eqtree);
 
 bool is_leaf(const NODE_T *node);
 
+bool simplify_tree(EQ_TREE_T *eqtree);
+
 EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx);
 
 // ---- Dump ----
