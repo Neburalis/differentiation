@@ -46,6 +46,7 @@ typedef struct EQ_TREE_T {
     NODE_T           *root;
     varlist::VarList *vars;
     bool              owns_vars;
+    bool              owns_name;
 } EQ_TREE_T;
 
 typedef enum {

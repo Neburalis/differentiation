@@ -207,7 +207,28 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
         ERROR_MSG("Can't read expression file '%s'\n", filename);
         return nullptr;
     }
-    Parser parser = {buffer, strlen(buffer), 0, false, vars};
+    char *owned_name = nullptr;
+    const char *payload = buffer;
+    move_ptr_to_first_not_space_symbol(&payload, 0);
+    if (*payload != '(') {
+        move_ptr_to_first_not_space_symbol(&payload, 0);
+        const char *line_end = strchr(payload, '\n');
+        if (!line_end) {
+            ERROR_MSG("Name must be on own line\n");
+            return nullptr;
+        }
+        size_t name_len = (size_t)(line_end - payload);
+        if (name_len) {
+            owned_name = TYPED_CALLOC(name_len + 1, char);
+            if (owned_name) {
+                memcpy(owned_name, payload, name_len);
+                eq_tree_name = owned_name;
+            }
+        }
+        payload = line_end + 1;
+    }
+    move_ptr_to_first_not_space_symbol(&payload, 0);
+    Parser parser = {payload, strlen(payload), 0, false, vars};
     NODE_T *root = parse_node(&parser);
     skip_spaces(&parser);
     if (!parser.error) {
@@ -222,6 +243,7 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
     }
     if (parser.error) {
         destruct(root);
+        FREE(owned_name);
         free(buffer);
         return nullptr;
     }
@@ -232,6 +254,8 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
     new_eq_tree->name = eq_tree_name;
     new_eq_tree->root = root;
     new_eq_tree->vars = vars;
+    new_eq_tree->owns_name = owned_name != nullptr;
+    owned_name = nullptr;
 
     return new_eq_tree;
 }

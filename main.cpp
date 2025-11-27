@@ -25,6 +25,8 @@ int main() {
     simplify_tree(tree);
     TERMINAL_CLEAR_SCREEN();
 
+    printf("name is [%s]\n", tree->name);
+
     full_dump(tree, "Dump from line %d", 18);
 
     simple_dump(tree, "Simple dump from line 20");
