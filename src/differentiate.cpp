@@ -1,3 +1,4 @@
+#include <string.h>
 #include "differentiator.h"
 #include "base.h"
 
@@ -23,13 +24,11 @@ function NODE_T *copy_subtree(const NODE_T *node) {
 }
 
 function NODE_T *make_number(double value) {
-    NODE_VALUE_T val = {.num = value};
-    return new_node(NUM_T, val, nullptr, nullptr);
+    return new_node(NUM_T, (NODE_VALUE_T) {.num = value}, nullptr, nullptr);
 }
 
 function NODE_T *make_binary(OPERATOR op, NODE_T *left, NODE_T *right) {
-    NODE_VALUE_T val = {.opr = op};
-    NODE_T *node = new_node(OP_T, val, left, right);
+    NODE_T *node = new_node(OP_T, (NODE_VALUE_T) {.opr = op}, left, right);
     if (!node) {
         destruct(left);
         destruct(right);
@@ -42,8 +41,7 @@ function NODE_T *make_binary(OPERATOR op, NODE_T *left, NODE_T *right) {
 }
 
 function NODE_T *make_unary(OPERATOR op, NODE_T *arg) {
-    NODE_VALUE_T val = {.opr = op};
-    NODE_T *node = new_node(OP_T, val, arg, nullptr);
+    NODE_T *node = new_node(OP_T, (NODE_VALUE_T) {.opr = op}, arg, nullptr);
     if (!node) destruct(arg);
     if (node && node->left) node->left->parent = node;
     return node;
@@ -157,10 +155,32 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
         }
         return nullptr;
     }
-    res->name = "d/dx";
+    const char *original_name = (src->name && *src->name) ? src->name : "equation";
+    const mystr::mystr_t *var_entry = (src->vars && diff_var_idx < varlist::size(src->vars))
+                                      ? varlist::get(src->vars, diff_var_idx)
+                                      : nullptr;
+    const char *var_name = (var_entry && var_entry->str && *var_entry->str)
+                           ? var_entry->str
+                           : "unknown variable";
+    const char *prefix = "derivative of ";
+    const char *infix = " with respect to ";
+    size_t label_len = strlen(prefix) + strlen(original_name) + strlen(infix) + strlen(var_name);
+    char *label = TYPED_CALLOC(label_len + 1, char);
+    if (!label) {
+        destruct(root);
+        if (vars_copy) {
+            varlist::destruct(vars_copy);
+            FREE(vars_copy);
+        }
+        FREE(res);
+        return nullptr;
+    }
+    snprintf(label, label_len + 1, "%s%s%s%s", prefix, original_name, infix, var_name);
+    res->name = label;
     res->root = root;
     res->vars = vars_copy;
     res->owns_vars = vars_copy != nullptr;
+    res->owns_name = true;
     return res;
 }
 
