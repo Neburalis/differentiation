@@ -18,6 +18,24 @@
 - `src/var_list.*` — список переменных, обеспечивающий уникальность и быстрый поиск по именам.
 - `main.cpp` — пример: читает `test_expression.txt`, вызывает дампы, печатает LaTeX и корректно освобождает ресурсы.
 
+## Грамматика
+Правила текущий РБНФ-грамматики:
+```
+Grammar         ::= Expression'\0'
+Expression      ::= Term{['+-']Term}*
+Term            ::= Power{['*/']Power}*
+Power           ::= Primary['^'Power]?
+Primary         ::= '('Expression')' | Number | Variable | UnaryCall | BinaryCall
+UnaryCall       ::= UnaryFunc '('Expression')'
+BinaryCall      ::= BinaryFunc '('Expression','Expression')'
+Variable        ::= ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9' '_']*
+Number          ::= '-'?['0'-'9']+
+BinaryFunc      ::= 'log'
+UnaryFunc       ::= 'ln' | 'sin' | 'cos' | 'tan' | 'tg' | 'ctg' | 'cot' | 'arcsin' | 'arccos'
+                  | 'arctan' | 'arctg' | 'arccot' | 'arcctg' | 'sqrt' | 'sinh' | 'sh'
+                  | 'cosh' | 'ch' | 'tanh' | 'th' | 'cth'
+```
+
 ## Требуемая раскладка каталогов
 ```
 ./
@@ -25,12 +43,10 @@
 ├── io_utils/                 ([Neburalis/io_utils](https://github.com/Neburalis/io_utils))
 └── string_and_thong/         ([Neburalis/string_and_thong](https://github.com/Neburalis/string_and_thong))
 ```
-В корне `differentiation/` лежит конфиг `.gppp.cfg`, перечисляющий исходники и заголовки для сборки.
 
 ## Сборка
 Используйте мою утилиту [`g+++`](https://github.com/Neburalis/gppp) — она читает `.gppp.cfg` и автоматически применяет оптимальные флаги компилятора.
 ```bash
-cd /root/prog/differentiation
 g+++        # создаст исполняемый файл a.out
 ```
 Результатом будет `a.out` в текущем каталоге.
