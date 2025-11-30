@@ -1,4 +1,4 @@
-  test 2
+ infix test 2 2 ^ (log (x, 2) - 1) - y
 (
     -
     (

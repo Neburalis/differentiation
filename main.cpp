@@ -21,7 +21,7 @@ int main() {
     varlist::VarList var_list = {};
     varlist::init(&var_list);
 
-    EQ_TREE_T *tree = load_tree_from_file("test2.txt", &var_list);
+    EQ_TREE_T *tree = load_tree_from_file("expr/infix_test3.tmp", &var_list);
     simplify_tree(tree);
     TERMINAL_CLEAR_SCREEN();
 

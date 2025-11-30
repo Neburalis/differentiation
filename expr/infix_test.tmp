@@ -1,1 +1,2 @@
+Infix test x * (y + 6)
 (* (x nil nil)(+ (y nil nil)( 6 nil nil)))
