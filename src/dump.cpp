@@ -476,7 +476,10 @@ function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
                     if (func) {
                         append_str(out, func);
                         append_char(out, '{');
+                        bool wrap_arg = node->left && node->left->type == OP_T;
+                        if (wrap_arg) append_char(out, '(');
                         latex_emit(tree, node->left, out);
+                        if (wrap_arg) append_char(out, ')');
                         append_char(out, '}');
                         return;
                     }
