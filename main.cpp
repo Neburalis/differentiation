@@ -21,13 +21,13 @@ int main() {
     varlist::VarList var_list = {};
     varlist::init(&var_list);
 
-    EQ_TREE_T *tree = load_tree_from_file("expr/test4.tmp", &var_list);
+    EQ_TREE_T *tree = load_tree_from_file("expr/test.tmp", &var_list);
     if (!tree) {
         printf("Failed to load tree from file\n");
         return 1;
     }
     simplify_tree(tree);
-    
+
     printf("name is [%s]\n", tree->name);
     TERMINAL_CLEAR_SCREEN();
 
