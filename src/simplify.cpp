@@ -3,6 +3,14 @@
 #include "differentiator.h"
 #include "base.h"
 
+const double EPSILON = 1e-12;
+
+bool double_equal(double a, double b) {
+    double diff = fabs(a - b);
+    double max_ab = fmax(fabs(a), fabs(b));
+    return diff <= EPSILON * max_ab;
+}
+
 function bool subtree_constant(const NODE_T *node) {
     if (!node) return false;
     if (node->type == VAR_T) return false;
@@ -71,7 +79,7 @@ function bool fold_constants(NODE_T *node) {
 }
 
 function bool is_number(const NODE_T *node, double value) {
-    return node && node->type == NUM_T && node->value.num == value;
+    return node && node->type == NUM_T && double_equal(node->value.num, value);
 }
 
 function void adopt_child(NODE_T *node, NODE_T *keep, NODE_T *drop) {

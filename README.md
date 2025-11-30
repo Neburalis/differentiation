@@ -55,12 +55,12 @@
 Grammar         ::= Expression'\0'
 Expression      ::= Term{['+-']Term}*
 Term            ::= Power{['*/']Power}*
-Power           ::= Primary['^'Power]?
+Power           ::= Primary{'^'Primary}?
 Primary         ::= '('Expression')' | Number | Variable | UnaryCall | BinaryCall
 UnaryCall       ::= UnaryFunc '('Expression')'
 BinaryCall      ::= BinaryFunc '('Expression','Expression')'
 Variable        ::= ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9' '_']*
-Number          ::= '-'?['0'-'9']+
+Number          ::= '-'?['0'-'9']+{'.'['0'-'9']+}?
 BinaryFunc      ::= 'log'
 UnaryFunc       ::= 'ln' | 'sin' | 'cos' | 'tan' | 'tg' | 'ctg' | 'cot' | 'arcsin' | 'arccos'
                   | 'arctan' | 'arctg' | 'arccot' | 'arcctg' | 'sqrt' | 'sinh' | 'sh'

@@ -32,35 +32,33 @@ function void debug_parse_print(const parser_t *p, const char *reason);
 // Extracts the tree name from the parser buffer.
 function bool extract_tree_name(parser_t *p, const char **eq_tree_name, char **owned_name);
 
-// Parses a single s-expression node and its children.
-function NODE_T *parse_s_expr(parser_t *p);
-
 // Skips whitespace characters in the parser buffer.
 function void skip_spaces(parser_t *p);
+#define ss_ skip_spaces(p)
 
-// Consumes a trailing `nil` child marker when present.
-function bool consume_nil(parser_t *p);
+// Recursive-descent entry points.
+function NODE_T *get_grammar   (parser_t *p);
+function NODE_T *get_expression(parser_t *p);
+function NODE_T *get_term      (parser_t *p);
+function NODE_T *get_power     (parser_t *p);
+function NODE_T *get_primary   (parser_t *p);
+function NODE_T *get_unarycall (parser_t *p);
+function NODE_T *get_binarycall(parser_t *p);
+function NODE_T *get_variable  (parser_t *p);
+function NODE_T *get_number    (parser_t *p);
+function bool    get_binaryfunc(parser_t *p, OPERATOR *out);
+function bool    get_unaryfunc (parser_t *p, OPERATOR *out);
 
-// Checks that the next character matches expectation.
-function bool expect_char(parser_t *p, char ch, const char *err_fmt);
-
-// Builds a tree node from the current token stream position.
-function NODE_T *create_node(parser_t *p);
-
-// Retrieves the next token or reports a parser error.
-function char *require_token(parser_t *p);
-
-// Extracts the next standalone token substring.
-function char *next_token(parser_t *p);
-
-// Fills node payload depending on deduced node type.
-function bool init_node_payload(parser_t *p, NODE_T *node, NODE_TYPE type, char *token);
-
-// Converts numeric literal token into node payload.
-function bool store_number(NODE_T *node, const char *token);
-
-// Registers variable name and stores its index.
-function bool store_variable(parser_t *p, NODE_T *node, char *token);
+// Helper routines.
+function bool    is_at_end     (const parser_t *p);
+function char    peek_char     (const parser_t *p);
+function bool    match_char    (parser_t *p, char ch);
+function char   *collect_identifier(parser_t *p);
+function NODE_T *make_binary_node(parser_t *p, OPERATOR op, NODE_T *lhs, NODE_T *rhs);
+function NODE_T *make_unary_node (parser_t *p, OPERATOR op, NODE_T *arg);
+function bool    is_unary_operator(OPERATOR op);
+function bool    is_binary_operator(OPERATOR op);
+function bool    store_variable(parser_t *p, NODE_T *node, char *token);
 
 // Reads expression file into an equation tree structure.
 EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars) {
@@ -80,16 +78,7 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
         return nullptr;
     }
     parser.vars = vars;
-    NODE_T *root = parse_s_expr(&parser);
-    skip_spaces(&parser);
-    while (parser.pos < parser.len) {
-        if (!isspace((unsigned char)parser.buf[parser.pos])) {
-            parser.error = true;
-            ERROR_MSG("Unexpected data after tree at offset %zu\n", parser.pos);
-            break;
-        }
-        ++parser.pos;
-    }
+    NODE_T *root = get_grammar(&parser);
     if (parser.error) {
         destruct(root);
         FREE(owned_name);
@@ -111,7 +100,7 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
 
 // Extracts the tree name from the parser buffer.
 function bool extract_tree_name(parser_t *p, const char **eq_tree_name, char **owned_name) {
-    skip_spaces(p);
+    ss_;
     if (p->pos >= p->len || p->buf[p->pos] == '(')
         return true;
     const char *line = p->buf + p->pos;
@@ -129,7 +118,7 @@ function bool extract_tree_name(parser_t *p, const char **eq_tree_name, char **o
         }
     }
     p->pos = (size_t)(line_end - p->buf) + 1;
-    skip_spaces(p);
+    ss_;
     return true;
 }
 
@@ -138,166 +127,374 @@ EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars) {
     return load_tree_from_file(filename, "New equation tree", vars);
 }
 
-#define PARSE_CHILD(p, node, field)                                   \
-    do {                                                              \
-        skip_spaces(p);                                               \
-        (node)->field = parse_s_expr(p);                                \
-        if ((p)->error) {                                             \
-            destruct(node);                                           \
-            return nullptr;                                           \
-        }                                                             \
-        if ((node)->field) {                                          \
-            (node)->field->parent = (node);                           \
-            (node)->elements += (node)->field->elements + 1;          \
-        }                                                             \
-    } while (0)
-
-// Parses a single s-expression node and its children.
-function NODE_T *parse_s_expr(parser_t *p) {
-    debug_parse_print(p, "parse_s_expr");
-    skip_spaces(p);
-    if (p->pos >= p->len) {
-        PARSE_FAIL(p, "Unexpected end of input while parsing node\n");
-        return nullptr;
-    }
-    if (consume_nil(p))
-        return nullptr;
-    if (!expect_char(p, '(', "Expected '%c', actual '%c' at position %zu\n"))
-        return nullptr;
-    NODE_T *node = create_node(p);
-    if (!node)
-        return nullptr;
-    PARSE_CHILD(p, node, left);
-    PARSE_CHILD(p, node, right);
-    skip_spaces(p);
-    if (!expect_char(p, ')', "Expected '%c', actual '%c' at position %zu\n")) {
-        destruct(node);
-        return nullptr;
-    }
-    return node;
+function bool is_at_end(const parser_t *p) {
+    return p->pos >= p->len;
 }
 
-#undef PARSE_CHILD
-
-// Builds a tree node from the current token stream position.
-function NODE_T *create_node(parser_t *p) {
-    debug_parse_print(p, "create_node");
-    char *token = require_token(p);
-    if (!token)
-        return nullptr;
-    NODE_TYPE type;
-    if (!node_type_from_token(token, &type)) {
-        PARSE_FAIL(p, "Unknown token '%s'\n", token);
-        free(token);
-        return nullptr;
-    }
-    NODE_T *node = alloc_new_node();
-    if (!node) {
-        PARSE_FAIL(p, "Allocation failed while parsing '%s'\n", token);
-        free(token);
-        return nullptr;
-    }
-    node->type = type;
-    if (!init_node_payload(p, node, type, token)) {
-        free(token);
-        free(node);
-        return nullptr;
-    }
-    free(token);
-    return node;
+function char peek_char(const parser_t *p) {
+    return is_at_end(p) ? '\0' : p->buf[p->pos];
 }
 
-// Fills node payload depending on deduced node type.
-function bool init_node_payload(parser_t *p, NODE_T *node, NODE_TYPE type, char *token) {
-    bool ok = false;
-    switch (type) {
-        case NUM_T: ok = store_number(node, token); break;
-        case OP_T: ok = operator_from_token(token, &node->value.opr); break;
-        case VAR_T: ok = store_variable(p, node, token); break;
-        default:
-            PARSE_FAIL(p, "Unknown node type: %d\n", type);
-            return false;
-    }
-    if (!ok)
-        PARSE_FAIL(p, "Failed to interpret node payload\n");
-    return ok;
-}
-
-// Retrieves the next token or reports a parser error.
-function char *require_token(parser_t *p) {
-    debug_parse_print(p, "require_token");
-    char *token = next_token(p);
-    if (token)
-        return token;
-    PARSE_FAIL(p, "Missing token at position %zu\n", p->pos);
-    return nullptr;
-}
-
-// Checks that the next character matches expectation.
-function bool expect_char(parser_t *p, char ch, const char *err_fmt) {
-    debug_parse_print(p, "expect_char");
-    if (p->pos >= p->len || p->buf[p->pos] != ch) {
-        PARSE_FAIL(p, err_fmt, ch, p->buf[p->pos], p->pos);
+function bool match_char(parser_t *p, char ch) {
+    if (peek_char(p) != ch)
         return false;
-    }
     ++p->pos;
     return true;
 }
 
-// Skips whitespace characters in the parser buffer.
 function void skip_spaces(parser_t *p) {
-    debug_parse_print(p, "skip_spaces");
-    while (p->pos < p->len && isspace((unsigned char)p->buf[p->pos]))
+    while (!is_at_end(p) && isspace((unsigned char) p->buf[p->pos]))
         ++p->pos;
 }
 
-// Consumes a trailing `nil` child marker when present.
-function bool consume_nil(parser_t *p) {
-    debug_parse_print(p, "consume_nil");
-    if (p->pos + 3 > p->len)
-        return false;
-    if (strncmp(p->buf + p->pos, "nil", 3) != 0)
-        return false;
-    size_t next = p->pos + 3;
-    if (next < p->len) {
-        char c = p->buf[next];
-        if (!isspace((unsigned char)c) && c != ')')
-            return false;
-    }
-    p->pos = next;
-    return true;
-}
-
-// Extracts the next standalone token substring.
-function char *next_token(parser_t *p) {
-    debug_parse_print(p, "next_token");
-    skip_spaces(p);
+function char *collect_identifier(parser_t *p) {
+    if (is_at_end(p))
+        return nullptr;
     size_t start = p->pos;
-    while (p->pos < p->len) {
-        char c = p->buf[p->pos];
-        if (isspace((unsigned char)c) || c == '(' || c == ')')
+    char c = p->buf[p->pos];
+    if (!isalpha((unsigned char) c))
+        return nullptr;
+    ++p->pos;
+    while (!is_at_end(p)) {
+        char sym = p->buf[p->pos];
+        if (!isalnum((unsigned char) sym) && sym != '_')
             break;
         ++p->pos;
     }
-    if (start == p->pos)
-        return nullptr;
     size_t span = p->pos - start;
-    char *token = TYPED_CALLOC(span + 1, char);
-    if (!token)
+    char *name = TYPED_CALLOC(span + 1, char);
+    if (!name) {
+        PARSE_FAIL(p, "No memory for identifier\n");
         return nullptr;
-    memcpy(token, p->buf + start, span);
-    token[span] = '\0';
-    return token;
+    }
+    memcpy(name, p->buf + start, span);
+    name[span] = '\0';
+    return name;
 }
 
-// Converts numeric literal token into node payload.
-function bool store_number(NODE_T *node, const char *token) {
-    char *end = nullptr;
-    double val = strtod(token, &end);
-    if (!end || end == token || *end != '\0')
+function bool is_unary_operator(OPERATOR op) {
+    switch (op) {
+        case LN:
+        case SIN:
+        case COS:
+        case TAN:
+        case CTG:
+        case ASIN:
+        case ACOS:
+        case ATAN:
+        case ACTG:
+        case SQRT:
+        case SINH:
+        case COSH:
+        case TANH:
+        case CTH:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function bool is_binary_operator(OPERATOR op) {
+    switch (op) {
+        case LOG:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function NODE_T *make_binary_node(parser_t *p, OPERATOR op, NODE_T *lhs, NODE_T *rhs) {
+    NODE_T *node = new_node(OP_T, (NODE_VALUE_T) {.opr = op}, lhs, rhs);
+    if (!node) {
+        PARSE_FAIL(p, "Failed to allocate binary node\n");
+        destruct(lhs);
+        destruct(rhs);
+    }
+    return node;
+}
+
+function NODE_T *make_unary_node(parser_t *p, OPERATOR op, NODE_T *arg) {
+    NODE_T *node = new_node(OP_T, (NODE_VALUE_T) {.opr = op}, arg, nullptr);
+    if (!node) {
+        PARSE_FAIL(p, "Failed to allocate unary node\n");
+        destruct(arg);
+    }
+    return node;
+}
+
+function bool get_unaryfunc(parser_t *p, OPERATOR *out) {
+    size_t start = p->pos;
+    char *name = collect_identifier(p);
+    if (!name)
         return false;
-    node->value.num = val;
+
+    OPERATOR op = {};
+    bool ok = operator_from_token(name, &op) && is_unary_operator(op);
+    FREE(name);
+    if (!ok) {
+        p->pos = start;
+        return false;
+    }
+    *out = op;
     return true;
+}
+
+function bool get_binaryfunc(parser_t *p, OPERATOR *out) {
+    size_t start = p->pos;
+    char *name = collect_identifier(p);
+    if (!name)
+        return false;
+    OPERATOR op = {};
+    bool ok = operator_from_token(name, &op) && is_binary_operator(op);
+    FREE(name);
+    if (!ok) {
+        p->pos = start;
+        return false;
+    }
+    *out = op;
+    return true;
+}
+
+function NODE_T *get_number(parser_t *p) {
+    ss_;
+    size_t start = p->pos;
+    if (is_at_end(p))
+        return nullptr;
+    char c = p->buf[p->pos];
+    if (!isdigit((unsigned char) c)) {
+        if (!(c == '-' && p->pos + 1 < p->len && isdigit((unsigned char) p->buf[p->pos + 1]))) // Если встретили минус а за ним не число
+            return nullptr;
+    }
+
+    char *end = nullptr;
+    double val = strtod(p->buf + p->pos, &end);
+    if (!end || end == p->buf + p->pos) {
+        p->pos = start;
+        return nullptr;
+    }
+    size_t consumed = (size_t) (end - (p->buf + p->pos));
+    p->pos += consumed;
+
+    NODE_T *node = new_node(NUM_T, (NODE_VALUE_T) {.num = val}, nullptr, nullptr);
+    if (!node) {
+        PARSE_FAIL(p, "Failed to allocate number node\n");
+        return nullptr;
+    }
+    return node;
+}
+
+function NODE_T *get_variable(parser_t *p) {
+    ss_;
+    size_t start = p->pos;
+    char *name = collect_identifier(p);
+    if (!name)
+        return nullptr;
+
+    OPERATOR op = {};
+    bool reserved = operator_from_token(name, &op) && (is_unary_operator(op) || is_binary_operator(op));
+    if (reserved) {
+        FREE(name);
+        p->pos = start;
+        return nullptr;
+    }
+
+    //MENTOR - какая запись лучше?
+    //NODE_T *node = new_node(VAR_T, (NODE_VALUE_T) {}, nullptr, nullptr);
+
+    NODE_T *node = alloc_new_node();
+    node->type = VAR_T;
+    if (!node) {
+        PARSE_FAIL(p, "Failed to allocate variable node\n");
+        FREE(name);
+        return nullptr;
+    }
+    if (!store_variable(p, node, name)) {
+        PARSE_FAIL(p, "Failed to register variable\n");
+        FREE(name);
+        destruct(node);
+        return nullptr;
+    }
+    FREE(name);
+    return node;
+}
+
+function NODE_T *get_binarycall(parser_t *p) {
+    ss_;
+    size_t start = p->pos;
+    OPERATOR op = {};
+    if (!get_binaryfunc(p, &op))
+        return nullptr;
+    ss_;
+    if (!match_char(p, '(')) {
+        p->pos = start;
+        return nullptr;
+    }
+    NODE_T *first = get_expression(p);
+    if (!first) {
+        if (!p->error)
+            p->pos = start;
+        return nullptr;
+    }
+    ss_;
+    if (!match_char(p, ',')) {
+        PARSE_FAIL(p, "Expected ',' in binary call\n");
+        destruct(first);
+        return nullptr;
+    }
+    NODE_T *second = get_expression(p);
+    if (!second) {
+        destruct(first);
+        return nullptr;
+    }
+    ss_;
+    if (!match_char(p, ')')) {
+        PARSE_FAIL(p, "Expected ')' after binary call\n");
+        destruct(first);
+        destruct(second);
+        return nullptr;
+    }
+
+    return make_binary_node(p, op, first, second);
+}
+
+function NODE_T *get_unarycall(parser_t *p) {
+    ss_;
+    size_t start = p->pos;
+    OPERATOR op = {};
+    if (!get_unaryfunc(p, &op))
+        return nullptr;
+    ss_;
+    if (!match_char(p, '(')) {
+        p->pos = start;
+        return nullptr;
+    }
+    NODE_T *arg = get_expression(p);
+    if (!arg) {
+        if (!p->error)
+            p->pos = start;
+        return nullptr;
+    }
+    ss_;
+    if (!match_char(p, ')')) {
+        PARSE_FAIL(p, "Expected ')' after unary call\n");
+        destruct(arg);
+        return nullptr;
+    }
+    return make_unary_node(p, op, arg);
+}
+
+function NODE_T *get_primary(parser_t *p) {
+    ss_;
+    if (match_char(p, '(')) {
+        NODE_T *node = get_expression(p);
+        if (!node)
+            return nullptr;
+        ss_;
+        if (!match_char(p, ')')) {
+            PARSE_FAIL(p, "Expected ')' to close group\n");
+            destruct(node);
+            return nullptr;
+        }
+        return node;
+    }
+
+    NODE_T *parsed = get_number(p);
+    if (parsed)
+        return parsed;
+
+    parsed = get_unarycall(p);
+    if (parsed)
+        return parsed;
+
+    parsed = get_binarycall(p);
+    if (parsed)
+        return parsed;
+
+    parsed = get_variable(p);
+    if (parsed)
+        return parsed;
+
+    PARSE_FAIL(p, "Primary expected at offset %zu\n", p->pos);
+    return nullptr;
+}
+
+function NODE_T *get_power(parser_t *p) {
+    NODE_T *base = get_primary(p);
+    if (!base)
+        return nullptr;
+    ss_;
+    if (!match_char(p, '^'))
+        return base;
+    NODE_T *exp = get_primary(p);
+    if (!exp) {
+        PARSE_FAIL(p, "Required exp after ^ symbol\n");
+        destruct(base);
+        return nullptr;
+    }
+    return make_binary_node(p, POW, base, exp);
+}
+
+function NODE_T *get_term(parser_t *p) {
+    NODE_T *lhs = get_power(p);
+    if (!lhs)
+        return nullptr;
+    while (true) {
+        ss_;
+        char op_char = peek_char(p);
+        OPERATOR op = {};
+        if (op_char == '*') op = MUL;
+        else if (op_char == '/') op = DIV;
+        else break;
+
+        ++p->pos;
+        NODE_T *rhs = get_power(p);
+        if (!rhs) {
+            destruct(lhs);
+            return nullptr;
+        }
+        lhs = make_binary_node(p, op, lhs, rhs);
+        if (!lhs)
+            return nullptr;
+    }
+    return lhs;
+}
+
+function NODE_T *get_expression(parser_t *p) {
+    NODE_T *lhs = get_term(p);
+    if (!lhs)
+        return nullptr;
+    while (true) {
+        ss_;
+        char op_char = peek_char(p);
+        OPERATOR op = {};
+        if (op_char == '+') op = ADD;
+        else if (op_char == '-') op = SUB;
+        else break;
+
+        ++p->pos;
+        NODE_T *rhs = get_term(p);
+        if (!rhs) {
+            destruct(lhs);
+            return nullptr;
+        }
+        lhs = make_binary_node(p, op, lhs, rhs);
+        if (!lhs)
+            return nullptr;
+    }
+    return lhs;
+}
+
+function NODE_T *get_grammar(parser_t *p) {
+    NODE_T *root = get_expression(p);
+    if (!root)
+        return nullptr;
+    ss_;
+    if (!is_at_end(p)) {
+        PARSE_FAIL(p, "Unexpected trailing data at offset %zu\n", p->pos);
+        destruct(root);
+        return nullptr;
+    }
+    return root;
 }
 
 // Registers variable name and stores its index.
@@ -321,3 +518,5 @@ function void debug_parse_print(const parser_t *p, const char *reason) {
     }
     putchar('\n');
 }
+
+#undef ss_
