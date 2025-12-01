@@ -302,7 +302,7 @@ function int latex_prec_op(OPERATOR op) {
 }
 
 function int latex_prec(const NODE_T *node) {
-    if (!node || node->type != OP_T) return 4;
+    if (!node || node->type != OP_T) return 5;
     return latex_prec_op(node->value.opr);
 }
 
@@ -310,7 +310,7 @@ function bool need_parens(OPERATOR parent, const NODE_T *child, bool right_side)
     if (!child || child->type != OP_T) return false;
     if (parent == DIV) return false;
     int parent_prec = latex_prec_op(parent);
-    int child_prec = latex_prec(child);
+    int child_prec  = latex_prec(child);
     if (parent == POW) {
         return right_side ? (child_prec <= parent_prec) : (child_prec < parent_prec);
     }

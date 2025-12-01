@@ -164,7 +164,10 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
                            : "unknown variable";
     const char *prefix = "derivative of ";
     const char *infix = " with respect to ";
-    size_t label_len = strlen(prefix) + strlen(original_name) + strlen(infix) + strlen(var_name);
+    size_t label_len = strlen(prefix)
+                     + strlen(original_name)
+                     + strlen(infix)
+                     + strlen(var_name);
     char *label = TYPED_CALLOC(label_len + 1, char);
     if (!label) {
         destruct(root);

@@ -5,9 +5,18 @@
 
 #define MEOW() printf("MEOW\n")
 
+#define $(x) printf("%s = %d", #x, (x))
+
 #define global   static
 #define local    static
 #define function static
+
+#define STR_(s) #s
+#define STR(s)  STR_(s)
+#define GLUE_(a, b) a##b
+#define GLUE(a, b) GLUE_(a, b)
+
+#define ARRAY_COUNT(a) (sizeof(a) / (sizeof(a[0])))
 
 #define TYPED_CALLOC(NMEMB, TYPE) \
     (TYPE *) calloc((NMEMB), sizeof(TYPE));
@@ -17,7 +26,7 @@
     (ptr) = nullptr;
 
 #define DIE()  \
-    *(int *) 0;
+    abort();
 
 #define VERIFY(cond, code) \
     if (!(cond)) {code};
