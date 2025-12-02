@@ -62,8 +62,8 @@ function bool    store_variable(parser_t *p, NODE_T *node, char *token);
 
 // Reads expression file into an equation tree structure.
 EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars) {
-    VERIFY(filename != nullptr, ERROR_MSG("filename is nullptr"); return nullptr;);
-    VERIFY(vars != nullptr, ERROR_MSG("vars list is nullptr"); return nullptr;);
+    VERIFY(filename != nullptr, ERROR_MSG("filename is nullptr");  return nullptr;);
+    VERIFY(vars     != nullptr, ERROR_MSG("vars list is nullptr"); return nullptr;);
     char *buffer = read_file_to_buf(filename, nullptr);
     if (!buffer) {
         ERROR_MSG("Can't read expression file '%s'\n", filename);
@@ -77,6 +77,7 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
         FREE(buffer);
         return nullptr;
     }
+    varlist::init(vars);
     parser.vars = vars;
     NODE_T *root = get_grammar(&parser);
     if (parser.error) {
@@ -297,12 +298,9 @@ function NODE_T *get_variable(parser_t *p) {
         p->pos = start;
         return nullptr;
     }
-
-    //MENTOR - какая запись лучше?
-    //NODE_T *node = new_node(VAR_T, (NODE_VALUE_T) {}, nullptr, nullptr);
-
-    NODE_T *node = alloc_new_node();
-    node->type = VAR_T;
+    NODE_T *node = new_node(VAR_T, (NODE_VALUE_T) {}, nullptr, nullptr);
+    // NODE_T *node = alloc_new_node();
+    // node->type = VAR_T;
     if (!node) {
         PARSE_FAIL(p, "Failed to allocate variable node\n");
         FREE(name);

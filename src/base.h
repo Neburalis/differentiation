@@ -16,6 +16,14 @@
 #define GLUE_(a, b) a##b
 #define GLUE(a, b) GLUE_(a, b)
 
+// Приводит число value, которое лежит в диапазоне value_min <= value <= value_max к диапазону res_min <= res <= res_max
+#define MAP(value, value_min, value_max, res_min, res_max) \
+   (((value) - (value_min)) * ((res_max) - (res_min)) / ((value_max) - (value_min))) + (res_min)
+
+static inline int randint(int min, int max) {
+    return (int) (rand() % (max - min)) + min;
+}
+
 #define ARRAY_COUNT(a) (sizeof(a) / (sizeof(a[0])))
 
 #define TYPED_CALLOC(NMEMB, TYPE) \

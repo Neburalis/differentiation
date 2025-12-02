@@ -1,2 +1,2 @@
-Test 1
-x * (y + 6)
+Test3
+(sin(x)) ^ (log(2, x)) + (sqrt(y ^ 2 + 1)) / (tanh(z))

@@ -2,6 +2,7 @@
 
 #include "differentiator.h"
 #include "base.h"
+#include "const_strings.h"
 
 const double EPSILON = 1e-12;
 
@@ -84,7 +85,10 @@ function bool is_number(const NODE_T *node, double value) {
 
 function void adopt_child(NODE_T *node, NODE_T *keep, NODE_T *drop) {
     NODE_T *parent = node->parent;
-    destruct(drop);
+    // fprintf(stderr, "adopt_child node=%p keep=%p drop=%p\n", (void *) node, (void *) keep, (void *) drop);
+    if (keep) {
+        destruct(drop);
+    }
     if (!keep) {
         replace_with_number(node, 0.0);
         node->parent = parent;
@@ -145,17 +149,24 @@ function size_t recount_elements(NODE_T *node) {
 
 bool simplify_tree(EQ_TREE_T *eqtree) {
     if (!eqtree || !eqtree->root) return false;
+    const EQ_TREE_T *prev_tree = differentiate_get_article_tree();
+    differentiate_set_article_tree(eqtree);
     bool changed = false;
-    bool iter = false;
     do {
-        iter = fold_constants  (eqtree->root) ||
-               simplify_neutral(eqtree->root);
-        if (iter) {
+        changed = false;
+        if (fold_constants(eqtree->root)) {
             recount_elements(eqtree->root);
             eqtree->root->parent = nullptr;
             changed = true;
         }
-    } while (iter);
+        if (simplify_neutral(eqtree->root)) {
+            recount_elements(eqtree->root);
+            eqtree->root->parent = nullptr;
+            changed = true;
+        }
+    } while (changed);
+    article_log_with_latex("\n<br><p>Путем несложных математических преобразований получим упрощенное выражение:</p>\n", eqtree);
+    differentiate_set_article_tree(prev_tree);
     return changed;
 }
 

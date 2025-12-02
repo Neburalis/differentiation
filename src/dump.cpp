@@ -7,6 +7,7 @@
 #include "differentiator.h"
 #include "base.h"
 #include "logger.h"
+#include "const_strings.h"
 
 const char *node_type_name(const NODE_T *node) {
     if (!node) return "UNKNOWN";
@@ -519,4 +520,41 @@ char *latex_dump(EQ_TREE_T *node) {
     latex_emit(node, node->root, &cursor);
     if (cursor) *cursor = '\0';
     return buf;
+}
+
+const char *get_random_str_to_dif_op(OPERATOR op) {
+    int is_op_string = randint(0, 2); // Если 1 то выдает строку оператора, иначе глобальную
+    if (is_op_string == 0)
+    switch (op) {
+#define CASE_(OPR) case OPR: return OPR##_FUNC_STR[randint(0, ARRAY_COUNT(OPR##_FUNC_STR))]
+            CASE_(ADD);
+            CASE_(SUB);
+            CASE_(MUL);
+            CASE_(DIV);
+            CASE_(POW);
+            CASE_(LOG);
+            CASE_(LN);
+            CASE_(SIN);
+            CASE_(COS);
+            CASE_(TAN);
+            CASE_(CTG);
+            CASE_(ASIN);
+            CASE_(ACOS);
+            CASE_(ATAN);
+            CASE_(ACTG);
+            CASE_(SQRT);
+            CASE_(SINH);
+            CASE_(COSH);
+            CASE_(TANH);
+            CASE_(CTH);
+            default:
+                return STEPS_STR[randint(0, ARRAY_COUNT(STEPS_STR))];
+#undef CASE_
+        }
+    else if (is_op_string == 1) {
+        return STEPS_STR[randint(0, ARRAY_COUNT(STEPS_STR))];
+    }
+    else /*if (is_op_string == 2)*/ {
+        return COMPLEX_FUNC_STR[randint(0, ARRAY_COUNT(COMPLEX_FUNC_STR))];
+    }
 }
