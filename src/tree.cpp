@@ -64,6 +64,17 @@ void destruct(EQ_TREE_T *eqtree) {
     FREE(eqtree);
 }
 
+void destruct(EQ_TREE_T **eq_arr) {
+    size_t idx = 1;
+    EQ_TREE_T *cur_tree = eq_arr[idx];
+    while(cur_tree != nullptr) {
+        destruct(cur_tree);
+        eq_arr[idx] = nullptr;
+        ++idx;
+        cur_tree = eq_arr[idx];
+    }
+}
+
 bool node_type_from_token(const char *token, NODE_TYPE *out) {
     if (!token || !*token || !out)
         return false;

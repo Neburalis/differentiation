@@ -165,7 +165,7 @@ bool simplify_tree(EQ_TREE_T *eqtree) {
             changed = true;
         }
     } while (changed);
-    article_log_with_latex("\n<br><p>Путем несложных математических преобразований получим упрощенное выражение:</p>\n", eqtree);
+    article_log_with_latex(eqtree, "\\bigskip\\hrule\\bigskip\nПутем несложных математических преобразований получим упрощенное выражение:");
     differentiate_set_article_tree(prev_tree);
     return changed;
 }

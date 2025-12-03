@@ -5,6 +5,26 @@
 // через макроподстановку, потому что это DSL, который требуется только локально в этом файле
 #define cs_ const char * const
 
+cs_ LATEX_BEGIN = "\\documentclass[12pt]{article}\n"
+                  "\\usepackage{fontspec}\n"
+                  "\\usepackage{polyglossia}\n"
+                  "\\setmainlanguage{russian}\n"
+                  "\\setotherlanguage{english}\n"
+                  "\\defaultfontfeatures{Ligatures=TeX}\n"
+                  "\\setmainfont{Times New Roman}\n"
+                  "\\setsansfont{Arial}\n"
+                  "\\setmonofont{Menlo}\n"
+                  "\\newfontfamily\\cyrillicfont{Times New Roman}\n"
+                  "\\newfontfamily\\cyrillicfontsf{Arial}\n"
+                  "\\newfontfamily\\cyrillicfonttt{Menlo}\n"
+                  "\\usepackage{amsmath,amssymb}\n"
+                  "\\usepackage{breqn}\n"
+                  "\\allowdisplaybreaks\n"
+                  "\\begin{document}\n\n"
+                  "\\section*{Введение}\n"
+                  "%s\n\n"
+                  "\\bigskip\\hrule\\bigskip\n";
+
 cs_ INTRO_STR =
 "Привет, Хабр! Сегодня поговорим о том, о чём не принято говорить в приличном обществе backend-разработчиков — "
 "о математическом анализе. Конкретнее — о взятии производных.«Зачем мне это в 2025 году?» — спросите вы. "
@@ -46,7 +66,6 @@ cs_ RESULT_STR[] = {
   , "Готово. Теперь вы знаете производную этой функции. Используйте эту силу мудро."
   , "Вот что получилось. Красота — в глазах смотрящего. Математика — в формулах."
   , "Дифференцирование завершено. Выражение выше — ваш ответ."
-  , "Результат. Можно упростить? Можно. Будем? Сейчас посмотрим."
   , "Производная найдена успешно. Никто не пострадал (надеюсь)."
   , "Вот она — производная во всей красе. Любуйтесь."
   , "Миссия выполнена. Производная доставлена."

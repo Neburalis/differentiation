@@ -1,2 +1,2 @@
-Test3
-(sin(x)) ^ (log(2, x)) + (sqrt(y ^ 2 + 1)) / (tanh(z))
+Test
+sin(20 * (x ^ 3) + 9) + (cos(15 * x + 6)) ^ 3

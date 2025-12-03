@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include "differentiator.h"
@@ -7,18 +8,22 @@
 #include "base.h"
 #include "const_strings.h"
 
-const char * HABR_ARTICLE_FILENAME = "logs/habr.html";
+const char * LATEX_SOURCE_FILENAME = "logs/report.tex";
+const char * LATEX_OUTPUT_FILENAME = "logs/report.pdf";
+const size_t COUNT_OF_DIFFS = 4;
+
+const double TANGENT_POINT = 0;
+
+const double X_MIN = -5;
+const double X_MAX =  5;
+const double Y_MIN = -5;
+const double Y_MAX =  5;
 
 int main(int argc, char *argv[]) {
     srand(time(nullptr));
 
     create_folder_if_not_exists("logs/");
-    init_logger(
-        "logs/",
-        "\n<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']],displayMath:[['$$','$$'],['\\\\[','\\\\]']]},"
-        "options:{skipHtmlTags:['script','noscript','style','textarea','annotation','annotation-xml']}};</script>"
-        "\n<script src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\" async></script>"
-        "\n<style>pre{white-space:pre-wrap;font-family:monospace}</style>");
+    init_logger("logs/");
 
     fprintf(logger_get_file(), "<H2>MEOW!</H2>");
 
@@ -43,14 +48,20 @@ int main(int argc, char *argv[]) {
     }
 
     // printf("name is [%s]\n", tree->name);
-    // getchar();
+    getchar();
     TERMINAL_EXIT_ALT_SCREEN();
 
-    FILE *habr_article = fopen(HABR_ARTICLE_FILENAME, "w");
-    system("cat habr_page/habr_start.html >> logs/habr.html");
-    fseek(habr_article, 0, SEEK_END);
-    fprintf(habr_article, "<p>%s</p>\n<br>", INTRO_STR);
-    differentiate_set_article_file(habr_article);
+    FILE *latex_article = fopen(LATEX_SOURCE_FILENAME, "w");
+    if (!latex_article) {
+        ERROR_MSG(RED("Failed to create LaTeX file %s\n"), LATEX_SOURCE_FILENAME);
+        destruct(tree);
+        varlist::destruct(&var_list);
+        destruct_logger();
+        return 1;
+    }
+
+    fprintf(latex_article, LATEX_BEGIN, INTRO_STR);
+    differentiate_set_article_file(latex_article);
 
     full_dump(tree, "Dump from line %d", 18);
     simple_dump(tree, "Simple dump from line 20");
@@ -72,12 +83,14 @@ int main(int argc, char *argv[]) {
     char *latex_first  = latex_dump(first_derivative);
 
     fprintf(differentiate_get_article_stream(),
-            "<hr><p>%s</p>\n"
-            "$$\\frac{\\mathrm{d}}{\\mathrm{d}x} %s = %s$$",
+            "\\bigskip\\hrule\\bigskip\n"
+            "%s\n\n"
+            "\\begin{dmath*}\n"
+            "\\frac{\\mathrm{d}}{\\mathrm{d}x} %s = %s\n"
+            "\\end{dmath*}\n",
             RESULT_STR[randint(0, ARRAY_COUNT(RESULT_STR))],
             latex_origin,
-            latex_first
-        );
+            latex_first);
     // fprintf(stdout,
     //         "<hr><p>%s</p>\n"
     //         "$$\frac{\mathrm{d}}{\mathrm{d}x} %s = %s$$",
@@ -85,6 +98,20 @@ int main(int argc, char *argv[]) {
     //         latex_origin,
     //         latex_first
     //     );
+
+    // EQ_TREE_T **dif_array = differentiate_to_n(tree, COUNT_OF_DIFFS, varlist::find_index(tree->vars, &x_str));
+
+    // article_log_text("<hr><p>Теперь быстренько пробежимся по остальным производным:</p>");
+    // article_log_text("<details>\n<summary>Все производные:</summary>");
+    // for (size_t i = 2; i <= COUNT_OF_DIFFS; ++i) {
+    //     char *latex = latex_dump(dif_array[i]);
+    //     int font_size = 1;
+    //     article_log_text("Производная #%zu: \n$$f^{(%zu)} = %s $$", i, i, latex);
+    //     FREE(latex);
+    // }
+    // article_log_text("</details>");
+
+    // destruct(dif_array);
 
     FREE(latex_origin);
     FREE(latex_first);
@@ -95,14 +122,22 @@ int main(int argc, char *argv[]) {
     varlist::destruct(&var_list);
     destruct_logger();
 
+    fprintf(latex_article, "\n\\bigskip\\hrule\\bigskip\n%s\n\n\\end{document}\n", CONCLUSION_STR);
+    fclose(latex_article);
+    differentiate_set_article_file(nullptr);
 
-    fprintf(habr_article, "\n\n<br>\n<p>%s</p>\n", CONCLUSION_STR);
-    fflush(habr_article);
-    system("cat habr_page/habr_end.html >> logs/habr.html");
-    fclose(habr_article);
-    char command[256] = {};
-    snprintf(command, sizeof(command), "open %s", HABR_ARTICLE_FILENAME);
-    system(command);
+    char compile_cmd[512] = {};
+    snprintf(compile_cmd, sizeof(compile_cmd),
+             "tectonic --outdir logs --chatter minimal %s > /dev/null",
+             LATEX_SOURCE_FILENAME);
+    int compile_status = system(compile_cmd);
+    if (compile_status == 0) {
+        char open_cmd[256] = {};
+        snprintf(open_cmd, sizeof(open_cmd), "open %s", LATEX_OUTPUT_FILENAME);
+        system(open_cmd);
+    } else {
+        ERROR_MSG(RED("tectonic failed, see logs for details\n"));
+    }
 
     // getchar();
     // getchar();

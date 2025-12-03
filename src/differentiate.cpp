@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include "differentiator.h"
+#include <stdarg.h>
+#include <math.h>
 
+#include "differentiator.h"
 #include "base.h"
 #include "io_utils.h"
 #include "logger.h"
@@ -31,14 +33,26 @@ const EQ_TREE_T *differentiate_get_article_tree(void) {
     return ARTICLE_CONTEXT.tree;
 }
 
-void article_log_text(const char *text) {
+void article_log_text(const char *fmt, ...) {
+    char prompt_buf[32768] = "";
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(prompt_buf, sizeof(prompt_buf), fmt, ap);
+    va_end(ap);
+
     FILE *article_file = differentiate_get_article_stream();
-    if (!article_file || !text || !*text) return;
-    fprintf(article_file, "%s\n\n", text);
+    if (!article_file || !fmt || !*fmt) return;
+    fprintf(article_file, "%s\n\n", prompt_buf);
     fflush(article_file);
 }
 
-void article_log_with_latex(const char *phrase, const EQ_TREE_T *tree) {
+void article_log_with_latex(const EQ_TREE_T *tree, const char *fmt, ...) {
+    char prompt_buf[2048] = "";
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(prompt_buf, sizeof(prompt_buf), fmt, ap);
+    va_end(ap);
+
     FILE *article_file = differentiate_get_article_stream();
     if (!article_file || !tree || !tree->root) return;
 
@@ -46,8 +60,8 @@ void article_log_with_latex(const char *phrase, const EQ_TREE_T *tree) {
     char *latex = latex_dump(mutable_tree);
     if (!latex) return;
 
-    if (phrase && *phrase) fprintf(article_file, "%s\n\n", phrase);
-    fprintf(article_file, "$$%s$$\n\n", latex);
+    if (fmt && *fmt) fprintf(article_file, "%s\n\n", prompt_buf);
+    fprintf(article_file, "\\begin{dmath*}\n%s\n\\end{dmath*}\n\n", latex);
     FREE(latex);
     fflush(article_file);
 }
@@ -62,11 +76,11 @@ void article_log_transition(const char *phrase, char *before_latex, char *after_
     if (phrase && *phrase) fprintf(article_file, "%s\n\n", phrase);
 
     if (before_latex && after_latex)
-        fprintf(article_file, "$$%s \\Rightarrow %s$$\n\n", before_latex, after_latex);
+        fprintf(article_file, "\\begin{dmath*}\n%s \\Rightarrow %s\n\\end{dmath*}\n\n", before_latex, after_latex);
     else if (after_latex)
-        fprintf(article_file, "$$%s$$\n\n", after_latex);
+        fprintf(article_file, "\\begin{dmath*}\n%s\n\\end{dmath*}\n\n", after_latex);
     else if (before_latex)
-        fprintf(article_file, "$$%s$$\n\n", before_latex);
+        fprintf(article_file, "\\begin{dmath*}\n%s\n\\end{dmath*}\n\n", before_latex);
 
     if (before_latex) FREE(before_latex);
     if (after_latex) FREE(after_latex);
@@ -101,9 +115,9 @@ function void article_log_step(const NODE_T *node, NODE_T *result) {
         fprintf(article_file, "%s\n\n", phrase);
 
     if (source_latex && result_latex)
-        fprintf(article_file, "$$(%s)' = %s$$\n\n", source_latex, result_latex);
+        fprintf(article_file, "\\begin{dmath*}\n(%s)' = %s\n\\end{dmath*}\n\n", source_latex, result_latex);
     else if (source_latex)
-        fprintf(article_file, "$$(%s)' = ?$$\n\n", source_latex);
+        fprintf(article_file, "\\begin{dmath*}\n(%s)' = ?\n\\end{dmath*}\n\n", source_latex);
 
     if (source_latex) FREE(source_latex);
     if (result_latex) FREE(result_latex);
@@ -151,8 +165,14 @@ function NODE_T *make_binary(OPERATOR op, NODE_T *left, NODE_T *right) {
 
 function NODE_T *make_unary(OPERATOR op, NODE_T *arg) {
     NODE_T *node = new_node(OP_T, (NODE_VALUE_T) {.opr = op}, arg, nullptr);
-    if (!node) destruct(arg);
+    if (!node) { destruct(node); return nullptr; }
     if (node && node->left) node->left->parent = node;
+    return node;
+}
+
+function NODE_T *make_variable(size_t var_idx) {
+    NODE_T *node = new_node(VAR_T, (NODE_VALUE_T) {.var = var_idx}, nullptr, nullptr);
+    if (!node) { destruct(node); return nullptr; }
     return node;
 }
 
@@ -185,7 +205,7 @@ function NODE_T *make_unary(OPERATOR op, NODE_T *arg) {
 #define cl copy_subtree(node->left)
 #define cr copy_subtree(node->right)
 
-#define RES(x) result = (x); break
+#define RES(x) {result = (x); break;}
 
 #define POW_FULL {                                                                      \
         bool base_const = !subtree_contains_var(node->left, diff_var_idx);              \
@@ -217,17 +237,10 @@ function bool subtree_contains_var(const NODE_T *node, size_t diff_var_idx) {
 
 function NODE_T *differentiate_node(const NODE_T *node, size_t diff_var_idx) {
     if (!node) return nullptr;
-
     NODE_T *result = nullptr;
     switch (node->type) {
-        case NUM_T:
-            result = ZERO();
-            article_log_step(node, result);
-            return result;
-        case VAR_T:
-            result = (diff_var_idx != varlist::NPOS && node->value.var == diff_var_idx) ? ONE() : ZERO();
-            article_log_step(node, result);
-            return result;
+        case NUM_T: RES(ZERO());
+        case VAR_T: RES((diff_var_idx != varlist::NPOS && node->value.var == diff_var_idx) ? ONE() : ZERO());
         case OP_T: {
             switch (node->value.opr) {
                 case ADD:  RES(ADD(dl, dr));
@@ -252,13 +265,13 @@ function NODE_T *differentiate_node(const NODE_T *node, size_t diff_var_idx) {
                 case CTH:  RES(MUL(NUM(-1.0), DIV(dl, MUL(SINH(cl), SINH(cl)))));
                 default:   RES(nullptr);
             }
-            if (!result) return nullptr;
-            article_log_step(node, result);
-            return result;
+            break;
         }
-        default:
-            return nullptr;
+        default: return nullptr;
     }
+    if (!result) return nullptr;
+    article_log_step(node, result);
+    return result;
 }
 
 function char *get_new_name(const EQ_TREE_T *src, size_t diff_var_idx) {
@@ -288,36 +301,83 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
     const EQ_TREE_T *prev_tree = differentiate_get_article_tree();
     differentiate_set_article_tree(src);
     FILE *article_file = differentiate_get_article_stream();
-    article_log_text("\n<hr>\n<h2>Посчитаем производную</h2>\n");
-    article_log_with_latex("Исходное выражение:\n\n", src);
+    article_log_text("\\bigskip\\hrule\\bigskip\n\\section*{Посчитаем производную}");
+
+    char *origin_latex = latex_dump((EQ_TREE_T *) src);
+    article_log_text("Исходное выражение: \n\\begin{dmath*}f(x) = %s\\end{dmath*}", origin_latex);
+    FREE(origin_latex);
+
     article_log_text("Продифференцируем это чудо...\n\n");
+
     NODE_T *root = differentiate_node(src->root, diff_var_idx);
     differentiate_set_article_tree(prev_tree);
     if (!root) return nullptr;
     root->parent = nullptr;
     varlist::VarList *vars_copy = src->vars ? varlist::clone(src->vars) : nullptr;
-    if (src->vars && !vars_copy) {
-        destruct(root);
-        return nullptr;
-    }
+
+    VERIFY(!(src->vars && !vars_copy), destruct(root); return nullptr;)
     EQ_TREE_T *res = TYPED_CALLOC(1, EQ_TREE_T);
-    if (!res) {
-        destruct(root);
-        if (vars_copy) {
-            varlist::destruct(vars_copy);
-            FREE(vars_copy);
-        }
-        return nullptr;
-    }
+    VERIFY(res, destruct(root); return nullptr;);
 
     res->name = get_new_name(src, diff_var_idx);
     res->root = root;
     res->vars = vars_copy;
     res->owns_vars = vars_copy != nullptr;
     res->owns_name = true;
-    article_log_with_latex("Получили производную. Теперь упростим это выражение:", res);
+    article_log_with_latex(res, "Получили производную. Теперь упростим это выражение:");
     simplify_tree(res);
     return res;
+}
+
+// Вернет указатель на динамический массив деревьев, где на i-том индексе лежит i-тая производная выражения
+// (на 0 лежит само исходное выражение)
+// на n+1 индексе лежит nullptr как терминальный элемент конца массива
+EQ_TREE_T **differentiate_to_n(const EQ_TREE_T *src, size_t n, size_t diff_var_idx) {
+    EQ_TREE_T **array = TYPED_CALLOC(n + 2, EQ_TREE_T *);
+    array[0] = (EQ_TREE_T *) src;
+
+    FILE *prev_article_file = differentiate_get_article_stream();
+    differentiate_set_article_file(nullptr);
+    for (size_t i = 1; i <= n; ++i) {
+        // printf("i = %zu", i);
+        EQ_TREE_T *dif = differentiate(array[i-1], diff_var_idx);
+        if (dif == nullptr) {
+            ERROR_MSG("Не смог взять %zu-тую производную\n", i);
+            destruct(array);
+            FREE(array);
+            return nullptr;
+        }
+        array[i] = dif;
+    }
+    differentiate_set_article_file(prev_article_file);
+    return array;
+}
+
+function NODE_T *tailor_k_term(EQ_TREE_T *k_dif, size_t k, double point, size_t var_idx) {
+    double koef = 0;
+    EQ_POINT_T calc_point = {.tree = k_dif, .point = (double []) {point}, .vars_count = 1};
+    calc_in_point(&calc_point);
+    koef = calc_point.result / tgamma(k + 1);
+    return MUL(make_number(koef), POW(SUB(make_variable(var_idx), make_number(point)), make_number(k)));
+}
+
+EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t var_idx) {
+    NODE_T *root = make_binary(ADD, nullptr, nullptr);
+
+    NODE_T *cur = root;
+
+    for (int k = 0; k <= n; ++k) {
+        cur->left = tailor_k_term(diff_array[k], k, point, var_idx);
+        cur->left->parent = cur;
+
+        cur->right = make_binary(ADD, nullptr, nullptr);
+        cur->right->parent = cur;
+        cur = cur->right;
+    }
+
+
+
+    return nullptr;
 }
 
 #undef dl

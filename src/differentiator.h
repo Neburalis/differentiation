@@ -61,8 +61,10 @@ NODE_T *new_node(NODE_TYPE type, NODE_VALUE_T value, NODE_T *left, NODE_T *right
 EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars);
 EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars);
 
-void destruct(EQ_TREE_T *eqtree);
-void destruct(NODE_T    *node);
+// Отчищает массив выражений (0 выражение не очищается, последний элемент должен быть nullptr)
+void destruct(EQ_TREE_T **eq_arr);
+void destruct(EQ_TREE_T  *eqtree);
+void destruct(NODE_T     *node);
 
 bool node_type_from_token(const char *token, NODE_TYPE *out);
 const char *node_type_name(const NODE_T *node);
@@ -93,6 +95,9 @@ bool is_leaf(const NODE_T *node);
 bool simplify_tree(EQ_TREE_T *eqtree);
 
 EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx);
+EQ_TREE_T **differentiate_to_n(const EQ_TREE_T *src, size_t n, size_t diff_var_idx);
+
+EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t diff_var_idx);
 
 // ---- Dump ----
 
@@ -118,8 +123,8 @@ void differentiate_set_article_file(FILE *file);
 void differentiate_set_article_tree(const EQ_TREE_T *tree);
 FILE *differentiate_get_article_stream(void);
 const EQ_TREE_T *differentiate_get_article_tree(void);
-void article_log_text(const char *text);
-void article_log_with_latex(const char *phrase, const EQ_TREE_T *tree);
+void article_log_text(const char *text, ...);
+void article_log_with_latex(const EQ_TREE_T *tree, const char *phrase, ...);
 void article_log_transition(const char *phrase, char *before_latex, char *after_latex);
 
 #endif //DIFFERENTIATION_H
