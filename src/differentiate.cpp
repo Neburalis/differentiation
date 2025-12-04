@@ -355,29 +355,58 @@ EQ_TREE_T **differentiate_to_n(const EQ_TREE_T *src, size_t n, size_t diff_var_i
 
 function NODE_T *tailor_k_term(EQ_TREE_T *k_dif, size_t k, double point, size_t var_idx) {
     double koef = 0;
-    EQ_POINT_T calc_point = {.tree = k_dif, .point = (double []) {point}, .vars_count = 1};
+    double point_values[1] = {point};
+    EQ_POINT_T calc_point = {.tree = k_dif, .point = point_values, .vars_count = 1};
     calc_in_point(&calc_point);
-    koef = calc_point.result / tgamma(k + 1);
+    koef = calc_point.result / tgamma(k + 1); // gamma(x) = (x - 1)!
     return MUL(make_number(koef), POW(SUB(make_variable(var_idx), make_number(point)), make_number(k)));
 }
 
-EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t var_idx) {
-    NODE_T *root = make_binary(ADD, nullptr, nullptr);
-
-    NODE_T *cur = root;
-
-    for (int k = 0; k <= n; ++k) {
-        cur->left = tailor_k_term(diff_array[k], k, point, var_idx);
-        cur->left->parent = cur;
-
-        cur->right = make_binary(ADD, nullptr, nullptr);
-        cur->right->parent = cur;
-        cur = cur->right;
+function NODE_T *build_taylor_expression(EQ_TREE_T **diff_array, size_t n, double point, size_t var_idx) {
+    NODE_T *expr = nullptr;
+    for (size_t k = 0; k <= n; ++k) {
+        NODE_T *term = tailor_k_term(diff_array[k], k, point, var_idx);
+        if (!term) {
+            destruct(expr);
+            return nullptr;
+        }
+        if (!expr) {
+            expr = term;
+            expr->parent = nullptr;
+            continue;
+        }
+        NODE_T *sum = make_binary(ADD, expr, term);
+        if (!sum) {
+            destruct(term);
+            destruct(expr);
+            return nullptr;
+        }
+        expr->parent = sum;
+        term->parent = sum;
+        expr = sum;
     }
+    return expr;
+}
 
+EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t var_idx) {
+    NODE_T *root = build_taylor_expression(diff_array, n, point, var_idx);
+    if (!root) return nullptr;
 
+    EQ_TREE_T *tailor_tree = TYPED_CALLOC(1, EQ_TREE_T);
+    if (tailor_tree == nullptr) {
+        destruct(root);
+        return nullptr;
+    }
+    
+    tailor_tree->root = root;
+    tailor_tree->name = strdup(diff_array[0]->name);
+    tailor_tree->vars = varlist::clone(diff_array[0]->vars);
+    tailor_tree->owns_name = true;
+    tailor_tree->owns_vars = true;
 
-    return nullptr;
+    simplify_tree(tailor_tree);
+
+    return tailor_tree;
 }
 
 #undef dl

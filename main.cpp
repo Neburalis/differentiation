@@ -19,6 +19,8 @@ const double X_MAX =  5;
 const double Y_MIN = -5;
 const double Y_MAX =  5;
 
+const double tailor_point = 0;
+
 int main(int argc, char *argv[]) {
     srand(time(nullptr));
 
@@ -71,7 +73,8 @@ int main(int argc, char *argv[]) {
     // printf("Result: %.10g\n", point.result);
 
     mystr::mystr_t x_str = mystr::construct("x");
-    EQ_TREE_T *first_derivative = differentiate(tree, varlist::find_index(tree->vars, &x_str));
+    size_t x_var_idx = varlist::find_index(tree->vars, &x_str);
+    EQ_TREE_T *first_derivative = differentiate(tree, x_var_idx);
     full_dump(first_derivative, "First derivative from line %d", __LINE__);
     simple_dump(first_derivative, "Simple first derivative from line %d", __LINE__);
 
@@ -86,7 +89,7 @@ int main(int argc, char *argv[]) {
             "\\bigskip\\hrule\\bigskip\n"
             "%s\n\n"
             "\\begin{dmath*}\n"
-            "\\frac{\\mathrm{d}}{\\mathrm{d}x} %s = %s\n"
+            "\\frac{\\mathrm{d}}{\\mathrm{d}x} %s \\\\ = %s\n"
             "\\end{dmath*}\n",
             RESULT_STR[randint(0, ARRAY_COUNT(RESULT_STR))],
             latex_origin,
@@ -99,19 +102,34 @@ int main(int argc, char *argv[]) {
     //         latex_first
     //     );
 
-    // EQ_TREE_T **dif_array = differentiate_to_n(tree, COUNT_OF_DIFFS, varlist::find_index(tree->vars, &x_str));
+    EQ_TREE_T **dif_array = differentiate_to_n(tree, COUNT_OF_DIFFS, x_var_idx);
+    EQ_TREE_T *tailor = nullptr;
+    if (dif_array) {
+        article_log_text("\\bigskip\\hrule\\bigskip\n\\section*{Первые %zu производных}", COUNT_OF_DIFFS);
+        for (size_t i = 2; i <= COUNT_OF_DIFFS; ++i) {
+            char *latex = latex_dump(dif_array[i]);
+            if (!latex) continue;
+            // printf("f^(%zu) = %s\n", i, latex);
+            article_log_text(
+                "Производная №%zu\n"
+                "\\begin{dmath*}\nf^{(%zu)}(x) = %s\n\\end{dmath*}", i, i, latex);
+            FREE(latex);
+        }
+        tailor = tailor_formula(dif_array, COUNT_OF_DIFFS, tailor_point, x_var_idx);
+    }
 
-    // article_log_text("<hr><p>Теперь быстренько пробежимся по остальным производным:</p>");
-    // article_log_text("<details>\n<summary>Все производные:</summary>");
-    // for (size_t i = 2; i <= COUNT_OF_DIFFS; ++i) {
-    //     char *latex = latex_dump(dif_array[i]);
-    //     int font_size = 1;
-    //     article_log_text("Производная #%zu: \n$$f^{(%zu)} = %s $$", i, i, latex);
-    //     FREE(latex);
-    // }
-    // article_log_text("</details>");
+    if (tailor) {
+        char *tailor_latex = latex_dump(tailor);
+        article_log_text(
+            "Формула Тейлóра:\n"
+            "\\begin{dmath*}\nf(%lg) = %s\n\\end{dmath*}",
+            tailor_point, tailor_latex
+        );
+        FREE(tailor_latex);
+    }
 
-    // destruct(dif_array);
+    if (dif_array) destruct(dif_array);
+    if (tailor) destruct(tailor);
 
     FREE(latex_origin);
     FREE(latex_first);

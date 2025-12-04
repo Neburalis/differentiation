@@ -79,7 +79,7 @@ void format_node_value(const EQ_TREE_T *eqtree, const NODE_T *node, char *buf, s
     if (!node || !buf || !size) return;
     switch (node->type) {
         case NUM_T:
-            snprintf(buf, size, "%.6g", node->value.num);
+            snprintf(buf, size, "%lf", node->value.num);
             break;
         case OP_T:
             snprintf(buf, size, "%s", operator_symbol(node->value.opr));
