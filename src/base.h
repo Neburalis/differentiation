@@ -11,10 +11,10 @@
 #define local    static
 #define function static
 
-#define STR_(s) #s
-#define STR(s)  STR_(s)
-#define GLUE_(a, b) a##b
-#define GLUE(a, b) GLUE_(a, b)
+// #define STR_(s) #s
+// #define STR(s)  STR_(s)
+// #define GLUE_(a, b) a##b
+// #define GLUE(a, b) GLUE_(a, b)
 
 // Приводит число value, которое лежит в диапазоне value_min <= value <= value_max к диапазону res_min <= res <= res_max
 #define MAP(value, value_min, value_max, res_min, res_max) \

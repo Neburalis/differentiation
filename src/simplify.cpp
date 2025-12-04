@@ -3,6 +3,7 @@
 #include "differentiator.h"
 #include "base.h"
 #include "const_strings.h"
+#include "article.h"
 
 const double EPSILON = 1e-12;
 

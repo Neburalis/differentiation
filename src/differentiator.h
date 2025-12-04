@@ -119,12 +119,4 @@ void simple_dump(EQ_TREE_T *node, const char *fmt, ...) __attribute__((format (p
 // Возвращает указатель на строку, содержащую latex выражение
 char *latex_dump(EQ_TREE_T *node);
 
-void differentiate_set_article_file(FILE *file);
-void differentiate_set_article_tree(const EQ_TREE_T *tree);
-FILE *differentiate_get_article_stream(void);
-const EQ_TREE_T *differentiate_get_article_tree(void);
-void article_log_text(const char *text, ...);
-void article_log_with_latex(const EQ_TREE_T *tree, const char *phrase, ...);
-void article_log_transition(const char *phrase, char *before_latex, char *after_latex);
-
 #endif //DIFFERENTIATION_H

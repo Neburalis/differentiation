@@ -344,7 +344,7 @@ function size_t latex_size(EQ_TREE_T *tree, NODE_T *node) {
     if (!tree || !node) return 0;
     switch (node->type) {
         case NUM_T:
-            return 16;
+            return 48;
         case VAR_T: {
             const mystr::mystr_t *name = tree->vars ? varlist::get(tree->vars, node->value.var) : nullptr;
             return (name && name->str) ? strlen(name->str) : 0;
@@ -422,9 +422,27 @@ function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
     if (!tree || !node || !out || !*out) return;
     switch (node->type) {
         case NUM_T: {
-            char buf[64] = "";
-            int written = snprintf(buf, sizeof(buf), "%.6g", node->value.num);
-            if (written > 0) append_str(out, buf);
+            char raw[64] = "";
+            int written = snprintf(raw, sizeof(raw), "%.15g", node->value.num);
+            if (written <= 0) break;
+            char *exp = strchr(raw, 'e');
+            if (!exp) exp = strchr(raw, 'E');
+            if (!exp) {
+                append_str(out, raw);
+                break;
+            }
+            int exponent = atoi(exp + 1);
+            *exp = '\0';
+            bool drop_mantissa = (strcmp(raw, "1") == 0);
+            if (!drop_mantissa) {
+                append_str(out, raw);
+                append_str(out, " \\cdot ");
+            }
+            append_str(out, "10^{");
+            char exp_buf[16] = "";
+            snprintf(exp_buf, sizeof(exp_buf), "%d", exponent);
+            append_str(out, exp_buf);
+            append_char(out, '}');
             break;
         }
         case VAR_T: {
