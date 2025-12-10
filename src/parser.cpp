@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "differentiator.h"
 #include "enhanced_string.h"
@@ -59,9 +60,19 @@ function NODE_T *make_unary_node (parser_t *p, OPERATOR op, NODE_T *arg);
 function bool    is_unary_operator(OPERATOR op);
 function bool    is_binary_operator(OPERATOR op);
 function bool    store_variable(parser_t *p, NODE_T *node, char *token);
+function bool extract_graph_range(parser_t *p, graph_range_t *range);
+
+#define CREATE_NEW_EQ_TREE()                                \
+    EQ_TREE_T *new_eq_tree = TYPED_CALLOC(1, EQ_TREE_T);    \
+    VERIFY(new_eq_tree, destruct(root); return nullptr;);   \
+    new_eq_tree->name = eq_tree_name;                       \
+    new_eq_tree->root = root;                               \
+    new_eq_tree->vars = vars;                               \
+    new_eq_tree->owns_name = owned_name != nullptr;         \
+    owned_name = nullptr;
 
 // Reads expression file into an equation tree structure.
-EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars) {
+EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars, graph_range_t *range) {
     VERIFY(filename != nullptr, ERROR_MSG("filename is nullptr");  return nullptr;);
     VERIFY(vars     != nullptr, ERROR_MSG("vars list is nullptr"); return nullptr;);
     char *buffer = read_file_to_buf(filename, nullptr);
@@ -77,6 +88,11 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
         FREE(buffer);
         return nullptr;
     }
+    if (!extract_graph_range(&parser, range)) {
+        FREE(owned_name);
+        FREE(buffer);
+        return nullptr;
+    }
     varlist::init(vars);
     parser.vars = vars;
     NODE_T *root = get_grammar(&parser);
@@ -88,16 +104,11 @@ EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, v
     }
     FREE(buffer);
 
-    EQ_TREE_T *new_eq_tree = TYPED_CALLOC(1, EQ_TREE_T);
-
-    new_eq_tree->name = eq_tree_name;
-    new_eq_tree->root = root;
-    new_eq_tree->vars = vars;
-    new_eq_tree->owns_name = owned_name != nullptr;
-    owned_name = nullptr;
-
+    CREATE_NEW_EQ_TREE();
     return new_eq_tree;
 }
+
+#undef CREATE_NEW_EQ_TREE
 
 // Extracts the tree name from the parser buffer.
 function bool extract_tree_name(parser_t *p, const char **eq_tree_name, char **owned_name) {
@@ -123,9 +134,35 @@ function bool extract_tree_name(parser_t *p, const char **eq_tree_name, char **o
     return true;
 }
 
+function bool extract_graph_range(parser_t *p, graph_range_t *range) {
+    double x_min = NAN, x_max = NAN, y_min = NAN, y_max = NAN;
+    if (strncmp(p->buf + p->pos, "xrange", 6) == 0) {
+        int count = sscanf(p->buf + p->pos, "xrange [%lg : %lg] ", &x_min, &x_max);
+        p->pos += count;
+        const char *line_end = strchr(p->buf + p->pos, '\n');
+        // DEBUG_PRINT("x_min = %lg, x_max = %lg\n", x_min, x_max);
+        if (line_end) {
+            p->pos += line_end - (p->buf + p->pos) + 1;
+        } else return false;
+    }
+    if (strncmp(p->buf + p->pos, "yrange", 6) == 0) {
+        int count = sscanf(p->buf + p->pos, "yrange [%lg : %lg] ", &y_min, &y_max);
+        p->pos += count;
+        const char *line_end = strchr(p->buf + p->pos, '\n');
+        if (line_end)
+            p->pos += line_end - (p->buf + p->pos) + 1;
+        else return false;
+    }
+    range->x_max=x_max;
+    range->x_min=x_min;
+    range->y_max=y_max;
+    range->y_min=y_min;
+    return true;
+}
+
 // Loads a tree with a default name wrapper.
-EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars) {
-    return load_tree_from_file(filename, "New equation tree", vars);
+EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars, graph_range_t *range) {
+    return load_tree_from_file(filename, "New equation tree", vars, range);
 }
 
 function bool is_at_end(const parser_t *p) {
@@ -299,8 +336,6 @@ function NODE_T *get_variable(parser_t *p) {
         return nullptr;
     }
     NODE_T *node = new_node(VAR_T, (NODE_VALUE_T) {}, nullptr, nullptr);
-    // NODE_T *node = alloc_new_node();
-    // node->type = VAR_T;
     if (!node) {
         PARSE_FAIL(p, "Failed to allocate variable node\n");
         FREE(name);
@@ -351,7 +386,6 @@ function NODE_T *get_binarycall(parser_t *p) {
         destruct(second);
         return nullptr;
     }
-
     return make_binary_node(p, op, first, second);
 }
 

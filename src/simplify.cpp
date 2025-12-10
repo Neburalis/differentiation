@@ -30,17 +30,17 @@ function double eval_constant(const NODE_T *node) {
             double l = node->left ? eval_constant(node->left) : 0.0;
             double r = node->right ? eval_constant(node->right) : 0.0;
             switch (node->value.opr) {
-                case ADD: return l + r;
-                case SUB: return l - r;
-                case MUL: return l * r;
-                case DIV: return l / r;
-                case POW: return pow(l, r);
-                case LOG: return log(l) / log(r);
-                case LN: return log(l);
-                case SIN: return sin(l);
-                case COS: return cos(l);
-                case TAN: return tan(l);
-                case CTG: return 1.0 / tan(l);
+                case ADD:  return l + r;
+                case SUB:  return l - r;
+                case MUL:  return l * r;
+                case DIV:  return l / r;
+                case POW:  return pow(l, r);
+                case LOG:  return log(l) / log(r);
+                case LN:   return log(l);
+                case SIN:  return sin(l);
+                case COS:  return cos(l);
+                case TAN:  return tan(l);
+                case CTG:  return 1.0 / tan(l);
                 case ASIN: return asin(l);
                 case ACOS: return acos(l);
                 case ATAN: return atan(l);
@@ -49,8 +49,8 @@ function double eval_constant(const NODE_T *node) {
                 case SINH: return sinh(l);
                 case COSH: return cosh(l);
                 case TANH: return tanh(l);
-                case CTH: return 1.0 / tanh(l);
-                default: return 0.0;
+                case CTH:  return 1.0 / tanh(l);
+                default:   return 0.0;
             }
         }
         default: return 0.0;

@@ -60,6 +60,15 @@ function NODE_T *make_variable(size_t var_idx) {
     return node;
 }
 
+#define CREATE_NEW_EQ_TREE()                                \
+    EQ_TREE_T *new_eq_tree = TYPED_CALLOC(1, EQ_TREE_T);    \
+    VERIFY(new_eq_tree, destruct(root); return nullptr;);   \
+    new_eq_tree->name = get_new_name(src, diff_var_idx);    \
+    new_eq_tree->root = root;                               \
+    new_eq_tree->vars = vars_copy;                          \
+    new_eq_tree->owns_vars = vars_copy != nullptr;          \
+    new_eq_tree->owns_name = true;
+
 #define ADD(L, R) make_binary(ADD, (L), (R))
 #define SUB(L, R) make_binary(SUB, (L), (R))
 #define MUL(L, R) make_binary(MUL, (L), (R))
@@ -81,20 +90,26 @@ function NODE_T *make_variable(size_t var_idx) {
 #define TANH(X)   make_unary(TANH, (X))
 #define CTH(X)    make_unary(CTH, (X))
 
-#define ZERO() make_number(0.0)
-#define ONE()  make_number(1.0)
+#define ZERO make_number(0.0)
+#define POS1 make_number(1.0)
+#define NEG1 make_number(-1.0)
 
+#define l node->left
+#define r node->right
 #define dl differentiate_node(node->left, diff_var_idx)
 #define dr differentiate_node(node->right, diff_var_idx)
 #define cl copy_subtree(node->left)
 #define cr copy_subtree(node->right)
+
+//! Barabanschikov ne zabudu compound func
+#define BBNZCF(DEQ) MUL(differentiate_node(node->left, diff_var_idx), DEQ)
 
 #define RES(x) {result = (x); break;}
 
 #define POW_FULL {                                                                      \
         bool base_const = !subtree_contains_var(node->left, diff_var_idx);              \
         bool exp_const  = !subtree_contains_var(node->right, diff_var_idx);             \
-        if (base_const && exp_const)  RES(ZERO());                                      \
+        if (base_const && exp_const)  RES(ZERO);                                        \
         if (base_const && !exp_const) RES(MUL(POW(cl, cr), MUL(LN(cl), dr)));           \
         if (!base_const && exp_const && node->right && node->right->type == NUM_T) {    \
             double n = node->right->value.num;                                          \
@@ -106,9 +121,9 @@ function NODE_T *make_variable(size_t var_idx) {
 #define LOG_FULL {                                                                                          \
     bool arg_const  = !subtree_contains_var(node->left,  diff_var_idx);                                     \
     bool base_const = !subtree_contains_var(node->right, diff_var_idx);                                     \
-    if (arg_const  &&  base_const) RES(ZERO());                                                             \
+    if (arg_const  &&  base_const) RES(ZERO);                                                               \
     if (base_const && !arg_const)  RES(DIV(dl, MUL(LN(cr), cl)));                                           \
-    if (arg_const  && !base_const) RES(MUL(NUM(-1.0), DIV(MUL(LN(cl), dr), MUL(cr, MUL(LN(cr), LN(cr)))))); \
+    if (arg_const  && !base_const) RES(MUL(NEG1, DIV(MUL(LN(cl), dr), MUL(cr, MUL(LN(cr), LN(cr))))));      \
     RES(DIV(SUB(MUL(DIV(dl, cl), LN(cr)), MUL(LN(cl), DIV(dr, cr))), MUL(LN(cr), LN(cr))));                 \
 }
 
@@ -123,8 +138,8 @@ function NODE_T *differentiate_node(const NODE_T *node, size_t diff_var_idx) {
     if (!node) return nullptr;
     NODE_T *result = nullptr;
     switch (node->type) {
-        case NUM_T: RES(ZERO());
-        case VAR_T: RES((diff_var_idx != varlist::NPOS && node->value.var == diff_var_idx) ? ONE() : ZERO());
+        case NUM_T: RES(ZERO);
+        case VAR_T: RES((diff_var_idx != varlist::NPOS && node->value.var == diff_var_idx) ? POS1 : ZERO);
         case OP_T: {
             switch (node->value.opr) {
                 case ADD:  RES(ADD(dl, dr));
@@ -133,18 +148,18 @@ function NODE_T *differentiate_node(const NODE_T *node, size_t diff_var_idx) {
                 case DIV:  RES(DIV(SUB(MUL(dl, cr), MUL(cl, dr)), MUL(cr, cr)));
                 case POW:  POW_FULL;
                 case LOG:  LOG_FULL;
-                case LN:   RES(DIV(dl, cl));
-                case SIN:  RES(MUL(COS(cl), dl));
-                case COS:  RES(MUL(NUM(-1.0), MUL(SIN(cl), dl)));
-                case TAN:  RES(DIV(dl, MUL(COS(cl), COS(cl))));
-                case CTG:  RES(MUL(NUM(-1.0), DIV(dl, MUL(SIN(cl), SIN(cl)))));
-                case ASIN: RES(DIV(dl, SQRT(SUB(ONE(), MUL(cl, cl)))));
-                case ACOS: RES(MUL(NUM(-1.0), DIV(dl, SQRT(SUB(ONE(), MUL(cl, cl))))));
-                case ATAN: RES(DIV(dl, ADD(ONE(), MUL(cl, cl))));
-                case ACTG: RES(MUL(NUM(-1.0), DIV(dl, ADD(ONE(), MUL(cl, cl)))));
-                case SQRT: RES(DIV(dl, MUL(NUM(2.0), SQRT(cl))));
-                case SINH: RES(MUL(COSH(cl), dl));
-                case COSH: RES(MUL(SINH(cl), dl));
+                case LN:   RES(BBNZCF(DIV(POS1, cl)))
+                case SIN:  RES(BBNZCF(COS(cl)));
+                case COS:  RES(BBNZCF(MUL(NEG1, SIN(cl))));
+                case TAN:  RES(BBNZCF(DIV(POS1, POW(COS(cl), NUM(2)))));
+                case CTG:  RES(BBNZCF(MUL(NEG1, DIV(POS1, POW(SIN(cl), NUM(2))))));
+                case ASIN: RES(BBNZCF(DIV(POS1, SQRT(SUB(POS1, POW(cl, NUM(2)))))));
+                case ACOS: RES(BBNZCF(DIV(NEG1, SQRT(SUB(POS1, POW(cl, NUM(2)))))));
+                case ATAN: RES(BBNZCF(DIV(POS1, ADD(POS1, POW(cl, NUM(2))))));
+                case ACTG: RES(BBNZCF(DIV(NEG1, ADD(POS1, POW(cl, NUM(2))))));
+                case SQRT: RES(BBNZCF(DIV(POS1, MUL(NUM(2), SQRT(cl)))));
+                case SINH: RES(BBNZCF(COSH(cl)));
+                case COSH: RES(BBNZCF(SINH(cl)));
                 case TANH: RES(DIV(dl, MUL(COSH(cl), COSH(cl))));
                 case CTH:  RES(MUL(NUM(-1.0), DIV(dl, MUL(SINH(cl), SINH(cl)))));
                 default:   RES(nullptr);
@@ -192,9 +207,8 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
 
     char *origin_latex = latex_dump((EQ_TREE_T *) src);
     article_log_text("Исходное выражение: \n\\begin{dmath*}f(x) = %s\\end{dmath*}", origin_latex);
-    FREE(origin_latex);
-
     article_log_text("Продифференцируем это чудо...\n\n");
+    FREE(origin_latex);
 
     NODE_T *root = differentiate_node(src->root, diff_var_idx);
     differentiate_set_article_tree(prev_tree);
@@ -203,17 +217,16 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
     varlist::VarList *vars_copy = src->vars ? varlist::clone(src->vars) : nullptr;
 
     VERIFY(!(src->vars && !vars_copy), destruct(root); return nullptr;)
-    EQ_TREE_T *res = TYPED_CALLOC(1, EQ_TREE_T);
-    VERIFY(res, destruct(root); return nullptr;);
 
-    res->name = get_new_name(src, diff_var_idx);
-    res->root = root;
-    res->vars = vars_copy;
-    res->owns_vars = vars_copy != nullptr;
-    res->owns_name = true;
-    article_log_with_latex(res, "Получили производную. Теперь упростим это выражение:");
-    simplify_tree(res);
-    return res;
+    CREATE_NEW_EQ_TREE();
+    article_log_with_latex(new_eq_tree, "Получили производную. Теперь упростим это выражение:");
+    simplify_tree(new_eq_tree);
+
+    char *latex_res = latex_dump(new_eq_tree), *latex_src = latex_dump((EQ_TREE_T *) src);
+    article_log_text("\\begin{dmath*} \\frac{\\mathrm{d}}{\\mathrm{dx}} %s = %s \\end{dmath*}", latex_src, latex_res);
+    FREE(latex_res);
+    FREE(latex_src);
+    return new_eq_tree;
 }
 
 // Вернет указатель на динамический массив деревьев, где на i-том индексе лежит i-тая производная выражения
@@ -303,10 +316,14 @@ EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t
     return tailor_tree;
 }
 
+#undef CREATE_NEW_EQ_TREE
+
 #undef dl
 #undef dr
 #undef cl
 #undef cr
+#undef l
+#undef r
 
 #undef ADD
 #undef SUB
@@ -324,6 +341,8 @@ EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t
 #undef ATAN
 #undef ZERO
 #undef ONE
+
+#undef BBNZCF
 
 #undef RES
 #undef LOG_FULL

@@ -54,12 +54,17 @@ typedef enum {
     TREE_CANT_ALLOC_MEMORY,
 } TREE_ERRNO;
 
+typedef struct {
+    double x_min, x_max,
+           y_min, y_max;
+} graph_range_t;
+
 NODE_T *alloc_new_node();
 
 NODE_T *new_node(NODE_TYPE type, NODE_VALUE_T value, NODE_T *left, NODE_T *right);
 
-EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars);
-EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars);
+EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars, graph_range_t *range);
+EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars, graph_range_t *range);
 
 // Отчищает массив выражений (0 выражение не очищается, последний элемент должен быть nullptr)
 void destruct(EQ_TREE_T **eq_arr);

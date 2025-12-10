@@ -29,17 +29,29 @@ void render_graphs(const EQ_TREE_T *original,
                    const EQ_TREE_T *taylor,
                    double center,
                    size_t var_idx,
-                   double x_min,
-                   double x_max,
-                   double y_min,
-                   double y_max
+                   graph_range_t range
                 ) {
+    double x_min = NAN, x_max = NAN, y_min = NAN, y_max = NAN;
+    if (!isfinite(range.x_min) || !isfinite(range.x_max)) {
+        x_min = -1.1, x_max = 1.1;
+    }
+    else {
+        x_min = range.x_min, x_max = range.x_max;
+    }
+    y_min = range.y_min, y_max = range.y_max;
+
     if (!original || !original->root || x_min >= x_max) return;
+
+    // printf("xrange [%lg:%lg]\n"
+    //     "yrange [%lg:%lg]\n",
+    //     x_min, x_max,
+    //     y_min, y_max
+    //  );
 
     create_folder_if_not_exists("logs/");
 
     const size_t samples = 400;
-    const double step = (x_max - x_min) / (samples - 1);
+    double step = (x_max - x_min) / (samples - 1);
     bool has_derivative = derivative && derivative->root;
     bool has_taylor = taylor && taylor->root;
     double f_center = eval_tree_value(original, var_idx, center);
@@ -57,6 +69,7 @@ void render_graphs(const EQ_TREE_T *original,
         double fx = eval_tree_value(original, var_idx, x);
         double tangent = has_tangent ? f_center + slope * (x - center) : NAN;
         double tx = has_taylor ? eval_tree_value(taylor, var_idx, x) : NAN;
+        // printf("x = %lg, fx = %lg, tan = %lg, tx = %lg\n", x, fx, tangent, tx);
         fprintf(data, "%.10g %.10g %.10g %.10g\n", x, fx, tangent, tx);
     }
     fclose(data);
@@ -66,6 +79,7 @@ void render_graphs(const EQ_TREE_T *original,
         ERROR_MSG("failed to open logs/graph_plot.gnu\n");
         return;
     }
+    // if (!isfinite(y_min) || !isfinite(y_max))
     fprintf(script,
             "set terminal pngcairo size 1280,720\n"
             "set output 'logs/graphs.png'\n"
@@ -74,9 +88,21 @@ void render_graphs(const EQ_TREE_T *original,
             "set ylabel 'y'\n"
             "set xrange [%g:%g]\n"
             "set yrange [%g:%g]\n"
+            "set pointsize 2\n"
             "set grid\n"
             "set key outside top center horizontal\n",
             x_min, x_max, y_min, y_max);
+    // else
+    // fprintf(script,
+    //         "set terminal pngcairo size 1280,720\n"
+    //         "set output 'logs/graphs.png'\n"
+    //         "set title 'Графики функции и аппроксимаций'\n"
+    //         "set xlabel 'x'\n"
+    //         "set ylabel 'y'\n"
+    //         "set xrange [%g:%g]\n"
+    //         "set grid\n"
+    //         "set key outside top center horizontal\n",
+    //         x_min, x_max);
 
     fprintf(script,
             "plot \\\n"
@@ -84,8 +110,8 @@ void render_graphs(const EQ_TREE_T *original,
     if (has_tangent) {
         fprintf(script,
                 ", \\\n  'logs/graph_data.dat' using 1:3 with lines lw 2 lc rgb '#d62728' "
-                "title 'Касательная в x=%.3g'",
-                center);
+                "title 'Касательная в x=%.3g', \"<echo '%lg %lg'\" with points",
+                center, center, f_center);
     }
     if (has_taylor) {
         fprintf(script,

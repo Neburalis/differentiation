@@ -22,16 +22,17 @@ size_t g_step_limit = 0;
 size_t g_requested_step_limit = 0;
 
 bool latex_too_long(const char *latex) {
-    if (!latex) return false;
-    size_t len = strlen(latex);
-    if (len > 900) return true;
-    size_t cdot_count = 0;
-    for (const char *p = latex; *p; ++p) {
-        if (p[0] == '\\' && strncmp(p, "\\cdot", 5) == 0) {
-            cdot_count++;
-        }
-    }
-    return cdot_count > 80;
+    // if (!latex) return false;
+    // size_t len = strlen(latex);
+    // if (len > 900) return true;
+    // size_t cdot_count = 0;
+    // for (const char *p = latex; *p; ++p) {
+    //     if (p[0] == '\\' && strncmp(p, "\\cdot", 5) == 0) {
+    //         cdot_count++;
+    //     }
+    // }
+    // return cdot_count > 80;
+    return false;
 }
 
 void log_placeholder(FILE *article_file, const char *message, size_t len) {

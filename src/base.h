@@ -5,16 +5,26 @@
 
 #define MEOW() printf("MEOW\n")
 
-#define $(x) printf("%s = %d", #x, (x))
+#define $d(x) printf("%s = %d", #x, (x))
+#define $f(x) printf("%s = %f", #x, (x))
+#define $lf(x) printf("%s = %lf", #x, (x))
 
 #define global   static
 #define local    static
 #define function static
 
-// #define STR_(s) #s
-// #define STR(s)  STR_(s)
-// #define GLUE_(a, b) a##b
-// #define GLUE(a, b) GLUE_(a, b)
+#ifndef STR_
+#define STR_(s) #s
+#endif
+#ifdef STR
+#define STR(s)  STR_(s)
+#endif
+#ifndef GLUE_
+#define GLUE_(a, b) a##b
+#endif
+#ifndef GLUE
+#define GLUE(a, b) GLUE_(a, b)
+#endif
 
 // Приводит число value, которое лежит в диапазоне value_min <= value <= value_max к диапазону res_min <= res <= res_max
 #define MAP(value, value_min, value_max, res_min, res_max) \

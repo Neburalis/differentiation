@@ -11,18 +11,18 @@ cs_ LATEX_BEGIN = "\\documentclass[12pt]{article}\n"
                   "\\setmainlanguage{russian}\n"
                   "\\setotherlanguage{english}\n"
                   "\\defaultfontfeatures{Ligatures=TeX,Renderer=HarfBuzz}\n"
-                  "\\setmainfont{OpenSans-Regular}[Path=fonts/,Extension=.ttf,BoldFont=OpenSans-Bold,ItalicFont=OpenSans-Italic,BoldItalicFont=OpenSans-BoldItalic]\n"
-                  "\\setsansfont{OpenSans-Regular}[Path=fonts/,Extension=.ttf,BoldFont=OpenSans-Bold,ItalicFont=OpenSans-Italic,BoldItalicFont=OpenSans-BoldItalic]\n"
-                  "\\setmonofont{OpenSans-Regular}[Path=fonts/,Extension=.ttf,BoldFont=OpenSans-Bold,ItalicFont=OpenSans-Italic,BoldItalicFont=OpenSans-BoldItalic]\n"
-                  "\\newfontfamily\\cyrillicfont{OpenSans-Regular}[Path=fonts/,Extension=.ttf,BoldFont=OpenSans-Bold,ItalicFont=OpenSans-Italic,BoldItalicFont=OpenSans-BoldItalic,Script=Cyrillic]\n"
-                  "\\newfontfamily\\cyrillicfontsf{OpenSans-Regular}[Path=fonts/,Extension=.ttf,BoldFont=OpenSans-Bold,ItalicFont=OpenSans-Italic,BoldItalicFont=OpenSans-BoldItalic,Script=Cyrillic]\n"
-                  "\\newfontfamily\\cyrillicfonttt{OpenSans-Regular}[Path=fonts/,Extension=.ttf,BoldFont=OpenSans-Bold,ItalicFont=OpenSans-Italic,BoldItalicFont=OpenSans-BoldItalic,Script=Cyrillic]\n"
+                  "\\setmainfont{PlayfairDisplay-Regular}[Path=fonts/,Extension=.ttf,BoldFont=PlayfairDisplay-Bold,ItalicFont=PlayfairDisplay-Italic,BoldItalicFont=PlayfairDisplay-BoldItalic]\n"
+                  "\\setsansfont{PlayfairDisplay-Regular}[Path=fonts/,Extension=.ttf,BoldFont=PlayfairDisplay-Bold,ItalicFont=PlayfairDisplay-Italic,BoldItalicFont=PlayfairDisplay-BoldItalic]\n"
+                  "\\setmonofont{PlayfairDisplay-Regular}[Path=fonts/,Extension=.ttf,BoldFont=PlayfairDisplay-Bold,ItalicFont=PlayfairDisplay-Italic,BoldItalicFont=PlayfairDisplay-BoldItalic]\n"
+                  "\\newfontfamily\\cyrillicfont{PlayfairDisplay-Regular}[Path=fonts/,Extension=.ttf,BoldFont=PlayfairDisplay-Bold,ItalicFont=PlayfairDisplay-Italic,BoldItalicFont=PlayfairDisplay-BoldItalic,Script=Cyrillic]\n"
+                  "\\newfontfamily\\cyrillicfontsf{PlayfairDisplay-Regular}[Path=fonts/,Extension=.ttf,BoldFont=PlayfairDisplay-Bold,ItalicFont=PlayfairDisplay-Italic,BoldItalicFont=PlayfairDisplay-BoldItalic,Script=Cyrillic]\n"
+                  "\\newfontfamily\\cyrillicfonttt{PlayfairDisplay-Regular}[Path=fonts/,Extension=.ttf,BoldFont=PlayfairDisplay-Bold,ItalicFont=PlayfairDisplay-Italic,BoldItalicFont=PlayfairDisplay-BoldItalic,Script=Cyrillic]\n"
                   "\\usepackage{amsmath,amssymb}\n"
                   "\\usepackage{breqn}\n"
                   "\\usepackage{graphicx}\n"
                   "\\allowdisplaybreaks\n"
                   "\\begin{document}\n\n"
-                  "\\section*{Введение}\n"
+                  "\\section{Введение}\n"
                   "%s\n\n"
                   "\\bigskip\\hrule\\bigskip\n";
 
@@ -211,10 +211,10 @@ cs_ ACTG_FUNC_STR[] = {
 };
 
 cs_ SQRT_FUNC_STR[] = {
-    "sqrt(x) — это x^(1/2). А значит, производная: 1/(2*sqrt(x)). Степени наше всё."
-  , "Корень извлекли, теперь дифференцируем. 1/(2*sqrt(x)) — и готово."
-  , "Квадратный корень. Просто степень 1/2 в маскировке."
-  , "SQRT - это почти как лучший футбольный клуб МФТИ: SqvRT."
+    "sqrt(x) — это x^(1/2). А значит, производная: 1/(2*sqrt(x)). Степени наше всё.",
+    "Корень извлекли, теперь дифференцируем. 1/(2*sqrt(x)) — и готово.",
+    "Квадратный корень. Просто степень 1/2 в маскировке.",
+    "SQRT - это почти как лучший футбольный клуб МФТИ: SqvRT.",
 };
 
 cs_ SINH_FUNC_STR[] = {

@@ -422,6 +422,8 @@ function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
     if (!tree || !node || !out || !*out) return;
     switch (node->type) {
         case NUM_T: {
+            if (node->value.num < 0)
+                append_char(out, '(');
             char raw[64] = "";
             int written = snprintf(raw, sizeof(raw), "%.15g", node->value.num);
             if (written <= 0) break;
@@ -429,6 +431,8 @@ function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
             if (!exp) exp = strchr(raw, 'E');
             if (!exp) {
                 append_str(out, raw);
+                if (node->value.num < 0)
+                    append_char(out, ')');
                 break;
             }
             int exponent = atoi(exp + 1);
@@ -443,6 +447,8 @@ function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
             snprintf(exp_buf, sizeof(exp_buf), "%d", exponent);
             append_str(out, exp_buf);
             append_char(out, '}');
+            if (node->value.num < 0)
+                    append_char(out, ')');
             break;
         }
         case VAR_T: {

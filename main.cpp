@@ -12,17 +12,9 @@
 
 const char * LATEX_SOURCE_FILENAME = "logs/report.tex";
 const char * LATEX_OUTPUT_FILENAME = "logs/report.pdf";
-const size_t COUNT_OF_DIFFS = 10;
+const size_t COUNT_OF_DIFFS = 7;
 
-const double TANGENT_POINT = 0;
-
-const double X_MIN = -1.1;
-const double X_MAX =  1.1;
-const double Y_MIN = -2.1;
-const double Y_MAX =  2.1;
-
-const double tailor_point = 0;
-
+const double TAILOR_POINT = 1;
 
 int main(int argc, char *argv[]) {
     srand(time(nullptr));
@@ -46,14 +38,21 @@ int main(int argc, char *argv[]) {
     TERMINAL_ENTER_ALT_SCREEN();
 
     varlist::VarList var_list = {};
-    EQ_TREE_T *tree = load_tree_from_file(equation_filename, &var_list);
+    graph_range_t range = {};
+    EQ_TREE_T *tree = load_tree_from_file(equation_filename, &var_list, &range);
     if (!tree) {
         printf("Failed to load tree from file\n");
         return 1;
     }
 
-    // printf("name is [%s]\n", tree->name);
-    // getchar();
+//     printf("xrange [%lg:%lg]\n"
+//            "yrange [%lg:%lg]\n",
+//            range.x_min, range.x_max,
+//            range.y_min, range.y_max
+//         );
+//
+//     printf("name is [%s]\n", tree->name);
+//     getchar();
     TERMINAL_EXIT_ALT_SCREEN();
 
     FILE *latex_article = fopen(LATEX_SOURCE_FILENAME, "w");
@@ -67,6 +66,7 @@ int main(int argc, char *argv[]) {
 
     fprintf(latex_article, LATEX_BEGIN, INTRO_STR);
     differentiate_set_article_file(latex_article);
+    article_log_text("\\tableofcontents");
 
     full_dump(tree, "Dump from line %d", 18);
     simple_dump(tree, "Simple dump from line 20");
@@ -85,6 +85,9 @@ int main(int argc, char *argv[]) {
     differentiate_set_article_file(latex_article);
     full_dump(first_derivative, "First derivative from line %d", __LINE__);
     simple_dump(first_derivative, "Simple first derivative from line %d", __LINE__);
+
+    // printf("Put enter ...\n");
+    // getchar();
 
     // point.tree = first_derivative;
     // calc_in_point(&point);
@@ -112,11 +115,11 @@ int main(int argc, char *argv[]) {
 
     article_log_text("\\newpage");
     article_log_text("\\section{Формула Тейлора}");
-    article_log_text("Разложение функции в окрестности x = %lg:", tailor_point);
-    tailor = tailor_formula(dif_array, COUNT_OF_DIFFS, tailor_point, x_var_idx);
+    article_log_text("Разложение функции в окрестности x = %lg:", TAILOR_POINT);
+    tailor = tailor_formula(dif_array, COUNT_OF_DIFFS, TAILOR_POINT, x_var_idx);
     // article_log_with_latex(tailor, nullptr);
 
-    render_graphs(tree, first_derivative, tailor, tailor_point, x_var_idx, X_MIN, X_MAX, Y_MIN, Y_MAX);
+    render_graphs(tree, first_derivative, tailor, TAILOR_POINT, x_var_idx, range);
 
     article_log_text("\\section{График}");
     article_log_text("\\begin{figure}[h]\\centering\\includegraphics[width=0.9\\textwidth]{graphs.png}\\caption{Графики функции и аппроксимаций}\\end{figure}");
