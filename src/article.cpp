@@ -12,7 +12,7 @@ extern const char *get_random_str_to_dif_op(OPERATOR op);
 
 typedef struct {
     FILE            *file;
-    const EQ_TREE_T *tree;
+    const FRONT_COMPIL_T *tree;
 } ArticleContext;
 
 global ArticleContext ARTICLE_CONTEXT = {};
@@ -47,7 +47,7 @@ void differentiate_set_article_file(FILE *file) {
     ARTICLE_CONTEXT.file = file;
 }
 
-void differentiate_set_article_tree(const EQ_TREE_T *tree) {
+void differentiate_set_article_tree(const FRONT_COMPIL_T *tree) {
     ARTICLE_CONTEXT.tree = tree;
 }
 
@@ -55,7 +55,7 @@ FILE *differentiate_get_article_stream(void) {
     return ARTICLE_CONTEXT.file ? ARTICLE_CONTEXT.file : logger_get_file();
 }
 
-const EQ_TREE_T *differentiate_get_article_tree(void) {
+const FRONT_COMPIL_T *differentiate_get_article_tree(void) {
     return ARTICLE_CONTEXT.tree;
 }
 
@@ -74,7 +74,7 @@ void article_log_text(const char *fmt, ...) {
     fflush(article_file);
 }
 
-void article_log_with_latex(const EQ_TREE_T *tree, const char *fmt, ...) {
+void article_log_with_latex(const FRONT_COMPIL_T *tree, const char *fmt, ...) {
     char prompt_buf[2048] = "";
     if (fmt && *fmt) {
         va_list ap;
@@ -86,7 +86,7 @@ void article_log_with_latex(const EQ_TREE_T *tree, const char *fmt, ...) {
     FILE *article_file = differentiate_get_article_stream();
     if (!article_file || !tree || !tree->root) return;
 
-    EQ_TREE_T *mutable_tree = (EQ_TREE_T *) tree;
+    FRONT_COMPIL_T *mutable_tree = (FRONT_COMPIL_T *) tree;
     char *latex = latex_dump(mutable_tree);
     if (!latex) return;
 
@@ -132,14 +132,14 @@ void article_log_step(const NODE_T *node, NODE_T *result) {
     if (!node || !result) return;
 
     FILE *article_file = differentiate_get_article_stream();
-    const EQ_TREE_T *current_tree = differentiate_get_article_tree();
+    const FRONT_COMPIL_T *current_tree = differentiate_get_article_tree();
     if (!article_file || !current_tree) return;
 
-    EQ_TREE_T source_eq = {};
+    FRONT_COMPIL_T source_eq = {};
     source_eq.root = (NODE_T *) node;
     source_eq.vars = current_tree->vars;
 
-    EQ_TREE_T result_eq = {};
+    FRONT_COMPIL_T result_eq = {};
     result_eq.root = result;
     result_eq.vars = current_tree->vars;
 

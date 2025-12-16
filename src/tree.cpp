@@ -49,7 +49,7 @@ void destruct(NODE_T *node) {
     FREE(node);
 }
 
-void destruct(EQ_TREE_T *eqtree) {
+void destruct(FRONT_COMPIL_T *eqtree) {
     if (!eqtree)
         return;
     destruct(eqtree->root);
@@ -64,9 +64,9 @@ void destruct(EQ_TREE_T *eqtree) {
     FREE(eqtree);
 }
 
-void destruct(EQ_TREE_T **eq_arr) {
+void destruct(FRONT_COMPIL_T **eq_arr) {
     size_t idx = 1;
-    EQ_TREE_T *cur_tree = eq_arr[idx];
+    FRONT_COMPIL_T *cur_tree = eq_arr[idx];
     while(cur_tree != nullptr) {
         destruct(cur_tree);
         eq_arr[idx] = nullptr;
@@ -182,7 +182,7 @@ function double eval_node(const NODE_T *node, const double *vals, size_t vals_nu
     }
 }
 
-EQ_POINT_T read_point_data(const EQ_TREE_T *eqtree) {
+EQ_POINT_T read_point_data(const FRONT_COMPIL_T *eqtree) {
     EQ_POINT_T res = {eqtree, nullptr, 0, 0};
     if (!eqtree) return res;
     varlist::VarList *vars = eqtree->vars;

@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     varlist::VarList var_list = {};
     graph_range_t range = {};
-    EQ_TREE_T *tree = load_tree_from_file(equation_filename, &var_list, &range);
+    FRONT_COMPIL_T *tree = load_tree_from_file(equation_filename, &var_list, &range);
     if (!tree) {
         printf("Failed to load tree from file\n");
         return 1;
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
     mystr::mystr_t x_str = mystr::construct("x");
     size_t x_var_idx = varlist::find_index(tree->vars, &x_str);
     differentiate_set_article_file(nullptr);
-    EQ_TREE_T *first_derivative = differentiate(tree, x_var_idx);
+    FRONT_COMPIL_T *first_derivative = differentiate(tree, x_var_idx);
     differentiate_set_article_file(latex_article);
     full_dump(first_derivative, "First derivative from line %d", __LINE__);
     simple_dump(first_derivative, "Simple first derivative from line %d", __LINE__);
@@ -98,8 +98,8 @@ int main(int argc, char *argv[]) {
     //                  first_ord ? first_ord : "первой");
     // article_log_with_latex(first_derivative, nullptr);
 
-    EQ_TREE_T **dif_array = differentiate_to_n(tree, COUNT_OF_DIFFS, x_var_idx);
-    EQ_TREE_T *tailor = nullptr;
+    FRONT_COMPIL_T **dif_array = differentiate_to_n(tree, COUNT_OF_DIFFS, x_var_idx);
+    FRONT_COMPIL_T *tailor = nullptr;
 
     // article_log_text("\\bigskip\\hrule\\bigskip\n\\section*{Первые %zu производных}", COUNT_OF_DIFFS);
     // for (size_t i = 2; i <= COUNT_OF_DIFFS; ++i) {

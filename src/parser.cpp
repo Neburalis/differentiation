@@ -63,7 +63,7 @@ function bool    store_variable(parser_t *p, NODE_T *node, char *token);
 function bool extract_graph_range(parser_t *p, graph_range_t *range);
 
 #define CREATE_NEW_EQ_TREE()                                \
-    EQ_TREE_T *new_eq_tree = TYPED_CALLOC(1, EQ_TREE_T);    \
+    FRONT_COMPIL_T *new_eq_tree = TYPED_CALLOC(1, FRONT_COMPIL_T);    \
     VERIFY(new_eq_tree, destruct(root); return nullptr;);   \
     new_eq_tree->name = eq_tree_name;                       \
     new_eq_tree->root = root;                               \
@@ -72,7 +72,7 @@ function bool extract_graph_range(parser_t *p, graph_range_t *range);
     owned_name = nullptr;
 
 // Reads expression file into an equation tree structure.
-EQ_TREE_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars, graph_range_t *range) {
+FRONT_COMPIL_T *load_tree_from_file(const char *filename, const char *eq_tree_name, varlist::VarList *vars, graph_range_t *range) {
     VERIFY(filename != nullptr, ERROR_MSG("filename is nullptr");  return nullptr;);
     VERIFY(vars     != nullptr, ERROR_MSG("vars list is nullptr"); return nullptr;);
     char *buffer = read_file_to_buf(filename, nullptr);
@@ -161,7 +161,7 @@ function bool extract_graph_range(parser_t *p, graph_range_t *range) {
 }
 
 // Loads a tree with a default name wrapper.
-EQ_TREE_T *load_tree_from_file(const char *filename, varlist::VarList *vars, graph_range_t *range) {
+FRONT_COMPIL_T *load_tree_from_file(const char *filename, varlist::VarList *vars, graph_range_t *range) {
     return load_tree_from_file(filename, "New equation tree", vars, range);
 }
 

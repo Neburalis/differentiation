@@ -148,9 +148,9 @@ function size_t recount_elements(NODE_T *node) {
     return total;
 }
 
-bool simplify_tree(EQ_TREE_T *eqtree) {
+bool simplify_tree(FRONT_COMPIL_T *eqtree) {
     if (!eqtree || !eqtree->root) return false;
-    const EQ_TREE_T *prev_tree = differentiate_get_article_tree();
+    const FRONT_COMPIL_T *prev_tree = differentiate_get_article_tree();
     differentiate_set_article_tree(eqtree);
     bool changed = false;
     do {

@@ -61,7 +61,7 @@ function NODE_T *make_variable(size_t var_idx) {
 }
 
 #define CREATE_NEW_EQ_TREE()                                \
-    EQ_TREE_T *new_eq_tree = TYPED_CALLOC(1, EQ_TREE_T);    \
+    FRONT_COMPIL_T *new_eq_tree = TYPED_CALLOC(1, FRONT_COMPIL_T);    \
     VERIFY(new_eq_tree, destruct(root); return nullptr;);   \
     new_eq_tree->name = get_new_name(src, diff_var_idx);    \
     new_eq_tree->root = root;                               \
@@ -173,7 +173,7 @@ function NODE_T *differentiate_node(const NODE_T *node, size_t diff_var_idx) {
     return result;
 }
 
-function char *get_new_name(const EQ_TREE_T *src, size_t diff_var_idx) {
+function char *get_new_name(const FRONT_COMPIL_T *src, size_t diff_var_idx) {
     const char *original_name = (src->name && *src->name) ? src->name : "equation";
     const mystr::mystr_t *var_entry = (src->vars && diff_var_idx < varlist::size(src->vars))
                                       ? varlist::get(src->vars, diff_var_idx)
@@ -195,9 +195,9 @@ function char *get_new_name(const EQ_TREE_T *src, size_t diff_var_idx) {
     return label;
 }
 
-EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
+FRONT_COMPIL_T *differentiate(const FRONT_COMPIL_T *src, size_t diff_var_idx) {
     if (!src || !src->root) return nullptr;
-    const EQ_TREE_T *prev_tree = differentiate_get_article_tree();
+    const FRONT_COMPIL_T *prev_tree = differentiate_get_article_tree();
     differentiate_set_article_tree(src);
     FILE *article_file = differentiate_get_article_stream();
     size_t limit = g_requested_step_limit ? g_requested_step_limit : 200;
@@ -205,7 +205,7 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
     g_step_counter = 0;
     g_step_limit = limit;
 
-    char *origin_latex = latex_dump((EQ_TREE_T *) src);
+    char *origin_latex = latex_dump((FRONT_COMPIL_T *) src);
     article_log_text("Исходное выражение: \n\\begin{dmath*}f(x) = %s\\end{dmath*}", origin_latex);
     article_log_text("Продифференцируем это чудо...\n\n");
     FREE(origin_latex);
@@ -222,7 +222,7 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
     article_log_with_latex(new_eq_tree, "Получили производную. Теперь упростим это выражение:");
     simplify_tree(new_eq_tree);
 
-    char *latex_res = latex_dump(new_eq_tree), *latex_src = latex_dump((EQ_TREE_T *) src);
+    char *latex_res = latex_dump(new_eq_tree), *latex_src = latex_dump((FRONT_COMPIL_T *) src);
     article_log_text("\\begin{dmath*} \\frac{\\mathrm{d}}{\\mathrm{dx}} %s = %s \\end{dmath*}", latex_src, latex_res);
     FREE(latex_res);
     FREE(latex_src);
@@ -232,9 +232,9 @@ EQ_TREE_T *differentiate(const EQ_TREE_T *src, size_t diff_var_idx) {
 // Вернет указатель на динамический массив деревьев, где на i-том индексе лежит i-тая производная выражения
 // (на 0 лежит само исходное выражение)
 // на n+1 индексе лежит nullptr как терминальный элемент конца массива
-EQ_TREE_T **differentiate_to_n(const EQ_TREE_T *src, size_t n, size_t diff_var_idx) {
-    EQ_TREE_T **array = TYPED_CALLOC(n + 2, EQ_TREE_T *);
-    array[0] = (EQ_TREE_T *) src;
+FRONT_COMPIL_T **differentiate_to_n(const FRONT_COMPIL_T *src, size_t n, size_t diff_var_idx) {
+    FRONT_COMPIL_T **array = TYPED_CALLOC(n + 2, FRONT_COMPIL_T *);
+    array[0] = (FRONT_COMPIL_T *) src;
 
     FILE *prev_file = nullptr;
     for (size_t i = 1; i <= n; ++i) {
@@ -244,7 +244,7 @@ EQ_TREE_T **differentiate_to_n(const EQ_TREE_T *src, size_t n, size_t diff_var_i
         }
         article_log_text("\\bigskip\\hrule\\bigskip\n\\subsection*{%zu производная}", i);
         g_requested_step_limit = (i == 1) ? 120 : 60;
-        EQ_TREE_T *dif = differentiate(array[i-1], diff_var_idx);
+        FRONT_COMPIL_T *dif = differentiate(array[i-1], diff_var_idx);
         if (dif == nullptr) {
             ERROR_MSG("Не смог взять %zu-тую производную\n", i);
             destruct(array);
@@ -260,7 +260,7 @@ EQ_TREE_T **differentiate_to_n(const EQ_TREE_T *src, size_t n, size_t diff_var_i
     return array;
 }
 
-function NODE_T *tailor_k_term(EQ_TREE_T *k_dif, size_t k, double point, size_t var_idx) {
+function NODE_T *tailor_k_term(FRONT_COMPIL_T *k_dif, size_t k, double point, size_t var_idx) {
     double koef = 0;
     double point_values[1] = {point};
     EQ_POINT_T calc_point = {.tree = k_dif, .point = point_values, .vars_count = 1};
@@ -269,7 +269,7 @@ function NODE_T *tailor_k_term(EQ_TREE_T *k_dif, size_t k, double point, size_t 
     return MUL(make_number(koef), POW(SUB(make_variable(var_idx), make_number(point)), make_number(k)));
 }
 
-function NODE_T *build_taylor_expression(EQ_TREE_T **diff_array, size_t n, double point, size_t var_idx) {
+function NODE_T *build_taylor_expression(FRONT_COMPIL_T **diff_array, size_t n, double point, size_t var_idx) {
     NODE_T *expr = nullptr;
     for (size_t k = 0; k <= n; ++k) {
         NODE_T *term = tailor_k_term(diff_array[k], k, point, var_idx);
@@ -295,11 +295,11 @@ function NODE_T *build_taylor_expression(EQ_TREE_T **diff_array, size_t n, doubl
     return expr;
 }
 
-EQ_TREE_T *tailor_formula(EQ_TREE_T **diff_array, size_t n, double point, size_t var_idx) {
+FRONT_COMPIL_T *tailor_formula(FRONT_COMPIL_T **diff_array, size_t n, double point, size_t var_idx) {
     NODE_T *root = build_taylor_expression(diff_array, n, point, var_idx);
     if (!root) return nullptr;
 
-    EQ_TREE_T *tailor_tree = TYPED_CALLOC(1, EQ_TREE_T);
+    FRONT_COMPIL_T *tailor_tree = TYPED_CALLOC(1, FRONT_COMPIL_T);
     if (tailor_tree == nullptr) {
         destruct(root);
         return nullptr;

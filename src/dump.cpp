@@ -75,7 +75,7 @@ const char *operator_symbol(OPERATOR op) {
     }
 }
 
-void format_node_value(const EQ_TREE_T *eqtree, const NODE_T *node, char *buf, size_t size) {
+void format_node_value(const FRONT_COMPIL_T *eqtree, const NODE_T *node, char *buf, size_t size) {
     if (!node || !buf || !size) return;
     switch (node->type) {
         case NUM_T:
@@ -93,7 +93,7 @@ void format_node_value(const EQ_TREE_T *eqtree, const NODE_T *node, char *buf, s
     }
 }
 
-function int write_node_full(EQ_TREE_T *eqtree, NODE_T *subtree, FILE *fp, int *id_counter) {
+function int write_node_full(FRONT_COMPIL_T *eqtree, NODE_T *subtree, FILE *fp, int *id_counter) {
     if (!subtree || !fp || !id_counter) return -1;
     int my_id = (*id_counter)++;
 
@@ -142,7 +142,7 @@ function int write_node_full(EQ_TREE_T *eqtree, NODE_T *subtree, FILE *fp, int *
     return my_id;
 }
 
-function int write_node_simple(EQ_TREE_T *eqtree, NODE_T *subtree, FILE *fp, int *id_counter) {
+function int write_node_simple(FRONT_COMPIL_T *eqtree, NODE_T *subtree, FILE *fp, int *id_counter) {
     if (!subtree || !fp || !id_counter) return -1;
     int my_id = (*id_counter)++;
 
@@ -177,7 +177,7 @@ function int write_node_simple(EQ_TREE_T *eqtree, NODE_T *subtree, FILE *fp, int
     return my_id;
 }
 
-function void generate_dot_dump(EQ_TREE_T *eqtree, bool is_simple, FILE *fp) {
+function void generate_dot_dump(FRONT_COMPIL_T *eqtree, bool is_simple, FILE *fp) {
     if (!fp) return;
     fprintf(fp,
             "digraph EquationTree {\n"
@@ -200,7 +200,7 @@ function void generate_dot_dump(EQ_TREE_T *eqtree, bool is_simple, FILE *fp) {
     fprintf(fp, "}\n");
 }
 
-function int generate_files(EQ_TREE_T *eqtree, bool is_simple, const char *dir, char *out_basename, size_t out_size) {
+function int generate_files(FRONT_COMPIL_T *eqtree, bool is_simple, const char *dir, char *out_basename, size_t out_size) {
     local size_t dump_counter = 0;
     const char *outdir = (dir && dir[0] != '\0') ? dir : ".";
     size_t outdir_len = strlen(outdir);
@@ -239,7 +239,7 @@ function int generate_files(EQ_TREE_T *eqtree, bool is_simple, const char *dir, 
     return 0;
 }
 
-function void dump_internal(EQ_TREE_T *eqtree, bool is_simple, const char *fmt, va_list ap) {
+function void dump_internal(FRONT_COMPIL_T *eqtree, bool is_simple, const char *fmt, va_list ap) {
     const char *dir = logger_get_active_dir();
     char basename[256] = "";
     int rc = generate_files(eqtree, is_simple, dir, basename, sizeof(basename));
@@ -267,24 +267,24 @@ function void dump_internal(EQ_TREE_T *eqtree, bool is_simple, const char *fmt, 
     fflush(log_file);
 }
 
-void full_dump(EQ_TREE_T *node) {
+void full_dump(FRONT_COMPIL_T *node) {
     va_list ap = {};
     dump_internal(node, false, nullptr, ap);
 }
 
-void full_dump(EQ_TREE_T *node, const char *fmt, ...) {
+void full_dump(FRONT_COMPIL_T *node, const char *fmt, ...) {
     va_list ap = {};
     va_start(ap, fmt);
     dump_internal(node, false, fmt, ap);
     va_end(ap);
 }
 
-void simple_dump(EQ_TREE_T *node) {
+void simple_dump(FRONT_COMPIL_T *node) {
     va_list ap = {};
     dump_internal(node, true, nullptr, ap);
 }
 
-void simple_dump(EQ_TREE_T *node, const char *fmt, ...) {
+void simple_dump(FRONT_COMPIL_T *node, const char *fmt, ...) {
     va_list ap = {};
     va_start(ap, fmt);
     dump_internal(node, true, fmt, ap);
@@ -340,7 +340,7 @@ function const char *latex_func_name(OPERATOR op) {
     }
 }
 
-function size_t latex_size(EQ_TREE_T *tree, NODE_T *node) {
+function size_t latex_size(FRONT_COMPIL_T *tree, NODE_T *node) {
     if (!tree || !node) return 0;
     switch (node->type) {
         case NUM_T:
@@ -418,7 +418,7 @@ function void append_str(char **dst, const char *src) {
     *dst += len;
 }
 
-function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
+function void latex_emit(FRONT_COMPIL_T *tree, NODE_T *node, char **out) {
     if (!tree || !node || !out || !*out) return;
     switch (node->type) {
         case NUM_T: {
@@ -532,7 +532,7 @@ function void latex_emit(EQ_TREE_T *tree, NODE_T *node, char **out) {
 }
 
 // U need to free the returned string
-char *latex_dump(EQ_TREE_T *node) {
+char *latex_dump(FRONT_COMPIL_T *node) {
     if (!node || !node->root) {
         ERROR_MSG("latex_dump: node or node->root is nullptr");
         return nullptr;

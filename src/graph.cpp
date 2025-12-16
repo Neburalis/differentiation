@@ -8,7 +8,7 @@
 #include "io_utils.h"
 #include "var_list.h"
 
-static double eval_tree_value(const EQ_TREE_T *tree, size_t var_idx, double x) {
+static double eval_tree_value(const FRONT_COMPIL_T *tree, size_t var_idx, double x) {
     if (!tree || !tree->root) return NAN;
     size_t vars_count = tree->vars ? varlist::size(tree->vars) : 0;
     double *values = nullptr;
@@ -24,9 +24,9 @@ static double eval_tree_value(const EQ_TREE_T *tree, size_t var_idx, double x) {
     return res;
 }
 
-void render_graphs(const EQ_TREE_T *original,
-                   const EQ_TREE_T *derivative,
-                   const EQ_TREE_T *taylor,
+void render_graphs(const FRONT_COMPIL_T *original,
+                   const FRONT_COMPIL_T *derivative,
+                   const FRONT_COMPIL_T *taylor,
                    double center,
                    size_t var_idx,
                    graph_range_t range
